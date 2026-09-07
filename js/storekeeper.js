@@ -1897,7 +1897,11 @@ async function postStorekeeperAPI(endpoint, body) {
 }
 window.postStorekeeperAPI = postStorekeeperAPI;
 
+let isAddingEquipmentInProgress = false;
+
 async function confirmAddEquipment() {
+    if (isAddingEquipmentInProgress) return;
+
     const name     = document.getElementById('newEquipmentName')?.value.trim();
     const category = document.getElementById('newEquipmentCategory')?.value.trim();
     const quantity = parseInt(document.getElementById('newEquipmentQuantity')?.value) || 0;
@@ -1909,6 +1913,7 @@ async function confirmAddEquipment() {
         return;
     }
 
+    isAddingEquipmentInProgress = true;
     const confirmBtn = document.getElementById('confirmAddEquipmentBtn');
     if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Saving...'; }
 
@@ -1927,22 +1932,25 @@ async function confirmAddEquipment() {
         }
 
         const item = data.item;
-        // Push into local equipmentStock with correct EQP ID
-        equipmentStock.push({
-            id:        item.id,
-            name:      item.name,
-            category:  item.category,
-            total:     item.totalQty,
-            totalQty:  item.totalQty,
-            available: item.availableQty,
-            availableQty: item.availableQty,
-            borrowed:  item.borrowedQty || 0,
-            damaged:   item.damagedQty  || 0,
-            status:    item.status,
-            sportsRoom: item.room || 'Main Gym Hall',
-            room:      item.room || 'Main Gym Hall',
-            rfidTag:   item.rfidTag || ''
-        });
+        // Avoid duplicate push if already present in equipmentStock
+        const exists = equipmentStock.some(e => String(e.id).toLowerCase() === String(item.id).toLowerCase());
+        if (!exists) {
+            equipmentStock.push({
+                id:        item.id,
+                name:      item.name,
+                category:  item.category,
+                total:     item.totalQty,
+                totalQty:  item.totalQty,
+                available: item.availableQty,
+                availableQty: item.availableQty,
+                borrowed:  item.borrowedQty || 0,
+                damaged:   item.damagedQty  || 0,
+                status:    item.status,
+                sportsRoom: item.room || 'Main Gym Hall',
+                room:      item.room || 'Main Gym Hall',
+                rfidTag:   item.rfidTag || ''
+            });
+        }
 
         closeModal('addEquipmentModal');
         // Clear form
@@ -1960,6 +1968,7 @@ async function confirmAddEquipment() {
     } catch (err) {
         showToast('Network error. Could not add equipment.', 'error');
     } finally {
+        isAddingEquipmentInProgress = false;
         if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.innerHTML = '<i class="fas fa-plus"></i> Add Equipment'; }
     }
 }

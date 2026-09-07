@@ -591,7 +591,7 @@
         <section id="page-stock-management" class="page">
             <h1 class="page-title">Equipment Stock Management</h1>
             <div class="page-controls" style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
-                <button type="button" class="btn btn-primary" id="addEquipmentBtn" onclick="openAddEquipmentModal();">
+                <button type="button" class="btn btn-primary" id="addEquipmentBtn">
                     <i class="fas fa-plus"></i> Add Equipment Category
                 </button>
             </div>
@@ -917,7 +917,7 @@
                     <input type="text" id="newEquipmentRFID" class="form-control" placeholder="Leave blank to assign later">
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-primary" id="confirmAddEquipmentBtn" onclick="confirmAddEquipment();">
+                    <button type="button" class="btn btn-primary" id="confirmAddEquipmentBtn">
                         <i class="fas fa-plus"></i> Add Equipment
                     </button>
                     <button type="button" class="btn btn-outline" id="cancelAddEquipmentBtn" onclick="closeModal('addEquipmentModal');">
@@ -981,7 +981,7 @@
                     <input type="text" id="editEquipmentRFID" class="form-control" placeholder="RFID UID (e.g. D8 E2 60 11)">
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-primary" id="confirmEditEquipmentBtn" onclick="confirmUpdateEquipment();">
+                    <button type="button" class="btn btn-primary" id="confirmEditEquipmentBtn">
                         <i class="fas fa-save"></i> Save Changes
                     </button>
                     <button type="button" class="btn btn-outline" id="cancelEditEquipmentBtn" onclick="closeModal('editEquipmentModal');">
