@@ -26,6 +26,10 @@ function getUniXsportToken() {
            '';
 }
 
+function getAdminApiBase() {
+    return (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000' : 'https://unixsport-api.onrender.com');
+}
+
 let currentAdmin = (() => {
     let raw = sessionStorage.getItem('unixsport_user_admin') || localStorage.getItem('unixsport_user_admin');
     let parsed = null;
@@ -1733,7 +1737,7 @@ function initRfidScanner() {
         // 1. Live SSE Hardware Stream Listener
         try {
             if (window.EventSource) {
-                adminRfidSse = new EventSource('/api/rfid/events');
+                adminRfidSse = new EventSource(`${getAdminApiBase()}/api/rfid/events`);
                 const onScan = (e) => {
                     try {
                         const data = JSON.parse(e.data);
@@ -1754,7 +1758,7 @@ function initRfidScanner() {
         adminRfidPoll = setInterval(async () => {
             if (!isScanning) return;
             try {
-                const res = await fetch('/api/rfid/latest-scan').then(r => r.json());
+                const res = await fetch(`${getAdminApiBase()}/api/rfid/latest-scan`).then(r => r.json());
                 if (res && res.success && res.scan && res.scan.rfidTag) {
                     const scan = res.scan;
                     if (scan.timestamp >= sessionStartTime && scan.id !== lastPolledScanId) {

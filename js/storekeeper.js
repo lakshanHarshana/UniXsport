@@ -14,6 +14,10 @@ function getUniXsportToken() {
            '';
 }
 
+function getStorekeeperApiBase() {
+    return (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000' : 'https://unixsport-api.onrender.com');
+}
+
 // ========== Data Storage (Connected 100% to Local Database) ==========
 let equipmentStock = [];
 let borrowHistory = [];
@@ -1072,7 +1076,7 @@ function openQuickIssueModal(student) {
 
             try {
                 if (window.EventSource) {
-                    eqSse = new EventSource('/api/rfid/events');
+                    eqSse = new EventSource(`${getStorekeeperApiBase()}/api/rfid/events`);
                     const onMsg = (e) => {
                         try {
                             const data = JSON.parse(e.data);
@@ -1089,7 +1093,7 @@ function openQuickIssueModal(student) {
             eqPoll = setInterval(async () => {
                 if (isEqProcessing) return;
                 try {
-                    const res = await fetch('/api/rfid/latest-scan').then(r => r.json());
+                    const res = await fetch(`${getStorekeeperApiBase()}/api/rfid/latest-scan`).then(r => r.json());
                     if (res && res.success && res.scan && res.scan.rfidTag) {
                         const scan = res.scan;
                         if (scan.timestamp >= eqSessionStartTime && scan.id !== lastPolled) {
@@ -1865,16 +1869,22 @@ function openAddEquipmentModal() {
 }
 // ========== Generic Storekeeper API Post Helper (Multi-Host Fallback) ==========
 async function postStorekeeperAPI(endpoint, body) {
+    const baseUrl = getStorekeeperApiBase();
     const urls = [
+        `${baseUrl}${endpoint}`,
         endpoint,
         `http://localhost:5000${endpoint}`,
         `http://127.0.0.1:5000${endpoint}`
     ];
     for (const url of urls) {
         try {
+            const token = getUniXsportToken();
             const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify(body)
             });
             if (res.ok) {
@@ -3145,7 +3155,7 @@ async function initRfidAssignmentPage() {
         // 1. Listen via SSE from /api/rfid/events
         try {
             if (window.EventSource) {
-                activeRfidEventSource = new EventSource('/api/rfid/events');
+                activeRfidEventSource = new EventSource(`${getStorekeeperApiBase()}/api/rfid/events`);
                 const handleSseMessage = (e) => {
                     try {
                         const data = JSON.parse(e.data);
@@ -3164,7 +3174,7 @@ async function initRfidAssignmentPage() {
         activeRfidPollingTimer = setInterval(async () => {
             if (isAssigningInProgress) return;
             try {
-                const res = await fetch('/api/rfid/latest-scan').then(r => r.json());
+                const res = await fetch(`${getStorekeeperApiBase()}/api/rfid/latest-scan`).then(r => r.json());
                 if (res && res.success && res.scan && res.scan.rfidTag) {
                     const scan = res.scan;
                     if (scan.timestamp >= scanSessionStartTime && scan.id !== lastPolledScanId) {
