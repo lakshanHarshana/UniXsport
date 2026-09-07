@@ -2174,16 +2174,27 @@ function openEditEquipmentModal(id) {
     if (roomInput)    roomInput.value    = item.sportsRoom || item.location || item.room || '';
     if (totalInput)   totalInput.value   = total;
     if (damagedInput) damagedInput.value = damaged;
-    if (availInput) {
-        availInput.value = available;
-        availInput.style.color = available === 0 ? '#ef4444' : available <= 2 ? '#f59e0b' : '#16a34a';
+    
+    function updateComputedAvail() {
+        const t = parseInt(totalInput?.value) || 0;
+        const d = parseInt(damagedInput?.value) || 0;
+        const a = Math.max(0, t - d);
+        if (availInput) {
+            availInput.value = a;
+            availInput.style.color = a === 0 ? '#ef4444' : a <= 2 ? '#f59e0b' : '#16a34a';
+        }
     }
+    if (totalInput)   totalInput.oninput   = updateComputedAvail;
+    if (damagedInput) damagedInput.oninput = updateComputedAvail;
+    updateComputedAvail();
+
     if (statusInput)  statusInput.value  = item.status || 'available';
     if (rfidInput)    rfidInput.value    = item.rfidTag || item.rfidCode || item.rfid || '';
 
     const modal = document.getElementById('editEquipmentModal');
     if (modal) {
         modal.classList.add('show');
+        modal.style.display = 'flex';
         setTimeout(() => nameInput?.focus(), 100);
     }
 }
@@ -2215,7 +2226,7 @@ async function confirmUpdateEquipment() {
     const availQty = Math.max(0, totalQty - damagedQty);
 
     const saveBtn = document.getElementById('confirmEditEquipmentBtn');
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
 
     try {
         const data = await postStorekeeperAPI('/api/storekeeper/update-equipment', {
@@ -2247,8 +2258,11 @@ async function confirmUpdateEquipment() {
                 name: updated.name,
                 category: updated.category,
                 total: updated.totalQty !== undefined ? updated.totalQty : updated.total,
+                totalQty: updated.totalQty !== undefined ? updated.totalQty : updated.total,
                 damaged: updated.damagedQty !== undefined ? updated.damagedQty : (updated.damaged || 0),
+                damagedQty: updated.damagedQty !== undefined ? updated.damagedQty : (updated.damaged || 0),
                 available: updated.availableQty !== undefined ? updated.availableQty : updated.available,
+                availableQty: updated.availableQty !== undefined ? updated.availableQty : updated.available,
                 borrowed: updated.borrowedQty || 0,
                 status: updated.status,
                 sportsRoom: assignedRoom,
@@ -2521,9 +2535,36 @@ function renderNotifications(filter) {
 
 // ========== Modal Helpers ==========
 function closeModal(modalId) {
-    document.getElementById(modalId)?.classList.remove('show');
+    const el = document.getElementById(modalId);
+    if (el) {
+        el.classList.remove('show');
+        el.style.display = 'none';
+    }
 }
 window.closeModal = closeModal;
+
+function openModal(modalId) {
+    const el = document.getElementById(modalId);
+    if (el) {
+        el.classList.add('show');
+        el.style.display = 'flex';
+    }
+}
+window.openModal = openModal;
+
+// Wire Edit Equipment Modal buttons
+document.getElementById('confirmEditEquipmentBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    confirmUpdateEquipment();
+});
+
+document.getElementById('closeEditEquipmentModal')?.addEventListener('click', () => {
+    closeModal('editEquipmentModal');
+});
+
+document.getElementById('cancelEditEquipmentBtn')?.addEventListener('click', () => {
+    closeModal('editEquipmentModal');
+});
 
 document.getElementById('closeQuantityModal')?.addEventListener('click', () => {
     closeModal('quantityModal');
