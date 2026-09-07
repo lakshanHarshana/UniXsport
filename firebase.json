@@ -5,38 +5,13 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "RFID/**",
-      "ADMIN_MODULE_PROMPT.md"
+      "RFID/**"
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "api"
-      },
-      {
-        "source": "/student",
-        "destination": "/student.html"
-      },
-      {
-        "source": "/storekeeper",
-        "destination": "/storekeeper.html"
-      },
-      {
-        "source": "/coach",
-        "destination": "/coach.html"
-      },
-      {
-        "source": "/admin",
-        "destination": "/admin.html"
+        "source": "/",
+        "destination": "/home.html"
       }
     ]
-  },
-  "functions": {
-    "source": "server",
-    "runtime": "nodejs20"
-  },
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
   }
 }

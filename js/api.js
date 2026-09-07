@@ -2,9 +2,13 @@
  * UniXsport - Local Database API Client & Persistent Data Store Layer
  */
 
-const API_BASE_URL = (typeof window !== 'undefined' && window.location.port === '5000')
-  ? ''
-  : 'http://localhost:5000';
+const API_BASE_URL = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+  ? 'http://localhost:5000'
+  : 'https://unixsport-api.onrender.com';
+
+if (typeof window !== 'undefined') {
+  window.API_BASE_URL = API_BASE_URL;
+}
 
 class UniXsportAPI {
   static getRoleFromContext() {

@@ -160,12 +160,13 @@ async function loadStatisticsData() {
     if (activeClassesEl) activeClassesEl.textContent = '...';
     if (facilitiesCountEl) facilitiesCountEl.textContent = '...';
 
+    const baseUrl = (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000' : 'https://unixsport-api.onrender.com');
+
     const endpoints = [
+        baseUrl + '/api/dashboard/metrics',
         '/api/dashboard/metrics',
-        'http://localhost:5000/api/dashboard/metrics',
-        'http://127.0.0.1:5000/api/dashboard/metrics',
-        '/api/public/stats',
-        'http://localhost:5000/api/public/stats'
+        baseUrl + '/api/public/stats',
+        '/api/public/stats'
     ];
 
     for (const ep of endpoints) {
@@ -348,10 +349,11 @@ async function loadEventsData() {
         }
     }
 
+    const baseUrl = (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000' : 'https://unixsport-api.onrender.com');
+
     const endpoints = [
-        '/api/public/events',
-        'http://localhost:5000/api/public/events',
-        'http://127.0.0.1:5000/api/public/events'
+        baseUrl + '/api/public/events',
+        '/api/public/events'
     ];
 
     for (const ep of endpoints) {

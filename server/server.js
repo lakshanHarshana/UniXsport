@@ -159,28 +159,13 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Start Standalone HTTP Server if executed directly
-if (require.main === module) {
-  const os = require('os');
-  const ifaces = os.networkInterfaces();
-  let localWifiIp = 'localhost';
-  for (const name of Object.keys(ifaces)) {
-    for (const net of ifaces[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        localWifiIp = net.address;
-      }
-    }
-  }
+// Start HTTP Server
+const PORT = process.env.PORT || config.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`====================================================`);
+  console.log(`   UniXsport Backend Running on Port ${PORT}`);
+  console.log(`====================================================`);
+});
 
-  app.listen(config.PORT, '0.0.0.0', () => {
-    console.log(`====================================================`);
-    console.log(`   UniXsport Industrial Backend Running`);
-    console.log(`   Local URL:    http://localhost:${config.PORT}`);
-    console.log(`   Wi-Fi URL:    http://${localWifiIp}:${config.PORT}`);
-    console.log(`   ESP32 Target: http://${localWifiIp}:${config.PORT}/api/rfid/scan`);
-    console.log(`====================================================`);
-  });
-}
-
-// Export for Firebase Cloud Functions deployment
+// Export for serverless deployments
 module.exports = app;
