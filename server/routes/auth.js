@@ -154,13 +154,14 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   try {
-    const { username, password, role } = req.body;
+    const { password, role } = req.body;
+    const rawIdentifier = req.body.username || req.body.email || req.body.userId || req.body.user_id || req.body.regNo;
 
-    if (!username || !password) {
+    if (!rawIdentifier || !password) {
       return res.status(400).json({ success: false, error: 'User ID / Email and Password are required.' });
     }
 
-    const target = username.toLowerCase().trim();
+    const target = String(rawIdentifier).toLowerCase().trim();
 
     // Match user by user_id, regNo, username, email, name, or id
     const user = db.users.find(u => {

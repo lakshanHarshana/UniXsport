@@ -197,27 +197,13 @@ function initWorkoutTracker() {
                 completed: checkbox.checked
             };
 
-            const endpoints = [
-                '/api/student/toggle-exercise',
-                'http://localhost:5000/api/student/toggle-exercise',
-                'http://127.0.0.1:5000/api/student/toggle-exercise'
-            ];
-
-            const token = getUniXsportToken();
             (async () => {
-                for (const ep of endpoints) {
-                    try {
-                        const res = await fetch(ep, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                            },
-                            body: JSON.stringify(payload)
-                        });
-                        if (res.ok) break;
-                    } catch (err) {}
-                }
+                try {
+                    await fetchStudentAPI('/api/student/toggle-exercise', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                } catch (err) {}
             })();
         });
     });
@@ -384,25 +370,9 @@ let studentNoticesList = [];
 
 async function fetchStudentNotices() {
     try {
-        const endpoints = [
-            '/api/notices',
-            'http://localhost:5000/api/notices',
-            'http://127.0.0.1:5000/api/notices'
-        ];
-        const token = getUniXsportToken();
-        for (const ep of endpoints) {
-            try {
-                const res = await fetch(ep, {
-                    headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.success && Array.isArray(data.notices)) {
-                        studentNoticesList = data.notices;
-                        break;
-                    }
-                }
-            } catch(e) {}
+        const data = await fetchStudentAPI('/api/notices');
+        if (data && data.success && Array.isArray(data.notices)) {
+            studentNoticesList = data.notices;
         }
     } catch(err) {
         console.warn('Failed to load student notices:', err);
@@ -1653,28 +1623,14 @@ async function initDynamicWorkoutPlan(targetRequestId) {
 
     let plan = null;
     const queryParam = targetRequestId ? `?requestId=${encodeURIComponent(targetRequestId)}` : '';
-    const endpoints = [
-        `/api/student/workout-plan${queryParam}`,
-        `http://localhost:5000/api/student/workout-plan${queryParam}`,
-        `http://127.0.0.1:5000/api/student/workout-plan${queryParam}`
-    ];
 
-    for (const ep of endpoints) {
-        try {
-            const token = getUniXsportToken();
-            const res = await fetch(ep, {
-                headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.success && data.plan) {
-                    plan = data.plan;
-                    break;
-                }
-            }
-        } catch (e) {
-            console.warn('API sync:', e.message);
+    try {
+        const data = await fetchStudentAPI(`/api/student/workout-plan${queryParam}`);
+        if (data && data.success && data.plan) {
+            plan = data.plan;
         }
+    } catch (e) {
+        console.warn('API sync:', e.message);
     }
 
     if (plan && plan.weeklyExercises && plan.weeklyExercises.length > 0) {
@@ -1872,26 +1828,9 @@ async function initMySchedule() {
     let requests = [];
 
     try {
-        const endpoints = [
-            '/api/student/schedules',
-            'http://localhost:5000/api/student/schedules',
-            'http://127.0.0.1:5000/api/student/schedules'
-        ];
-
-        for (const ep of endpoints) {
-            try {
-                const token = getUniXsportToken();
-                const res = await fetch(ep, {
-                    headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-                });
-                if (res.ok) {
-                    const parsed = await res.json();
-                    if (parsed && parsed.success && Array.isArray(parsed.requests)) {
-                        requests = parsed.requests;
-                        break;
-                    }
-                }
-            } catch (e) {}
+        const parsed = await fetchStudentAPI('/api/student/schedules');
+        if (parsed && parsed.success && Array.isArray(parsed.requests)) {
+            requests = parsed.requests;
         }
     } catch(e) {
         console.error('Failed to load student schedules from API:', e);
@@ -2001,32 +1940,15 @@ function initDeleteScheduleModal() {
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
 
         try {
-            const endpoints = [
-                `/api/student/schedule/${pendingDeleteScheduleId}`,
-                `http://localhost:5000/api/student/schedule/${pendingDeleteScheduleId}`,
-                `http://127.0.0.1:5000/api/student/schedule/${pendingDeleteScheduleId}`
-            ];
-
-            const token = getUniXsportToken();
             let deleted = false;
-
-            for (const ep of endpoints) {
-                try {
-                    const res = await fetch(ep, {
-                        method: 'DELETE',
-                        headers: {
-                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                        }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data && data.success) {
-                            deleted = true;
-                            break;
-                        }
-                    }
-                } catch(e) {}
-            }
+            try {
+                const data = await fetchStudentAPI(`/api/student/schedule/${pendingDeleteScheduleId}`, {
+                    method: 'DELETE'
+                });
+                if (data && data.success) {
+                    deleted = true;
+                }
+            } catch(e) {}
 
             if (deleted) {
                 hideDeleteModal();
@@ -2195,21 +2117,19 @@ async function loadBorrowHistory() {
 // ========== Dynamic Student Dashboard Statistics ==========
 async function updateStudentDashboardStats() {
     try {
-        if (window.UniXsportAPI && typeof window.UniXsportAPI.getStudentDashboard === 'function') {
-            const res = await window.UniXsportAPI.getStudentDashboard();
-            if (res && res.success && res.data) {
-                const d = res.data;
-                const elSessions = document.getElementById('dashUpcomingSessions');
-                const elPlan = document.getElementById('dashWorkoutPlan');
-                const elPendingEq = document.getElementById('dashPendingEquipment');
-                const elTotalBorrowed = document.getElementById('dashTotalBorrowed');
+        const res = await fetchStudentAPI('/api/student/dashboard');
+        if (res && res.success && res.data) {
+            const d = res.data;
+            const elSessions = document.getElementById('dashUpcomingSessions');
+            const elPlan = document.getElementById('dashWorkoutPlan');
+            const elPendingEq = document.getElementById('dashPendingEquipment');
+            const elTotalBorrowed = document.getElementById('dashTotalBorrowed');
 
-                if (elSessions) elSessions.textContent = d.upcomingSessionsCount || 0;
-                if (elPlan) elPlan.textContent = d.workoutPlan ? 'Yes' : 'No';
-                if (elPendingEq) elPendingEq.textContent = d.pendingRequestsCount || 0;
-                if (elTotalBorrowed) elTotalBorrowed.textContent = d.borrowedEquipmentCount || 0;
-                return;
-            }
+            if (elSessions) elSessions.textContent = d.upcomingSessionsCount || 0;
+            if (elPlan) elPlan.textContent = d.workoutPlan ? 'Yes' : 'No';
+            if (elPendingEq) elPendingEq.textContent = d.pendingRequestsCount || 0;
+            if (elTotalBorrowed) elTotalBorrowed.textContent = d.borrowedEquipmentCount || 0;
+            return;
         }
     } catch(err) {
         console.error('Failed to load student dashboard stats from API:', err);

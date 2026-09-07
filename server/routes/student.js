@@ -6,82 +6,6 @@ const config = require('../config');
 const { db, saveDatabase } = require('../db');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
-// All routes require authenticated Student or Admin
-router.use(authenticateToken);
-
-/**
- * Helper to get all lowercase unique identifiers for the authenticated user
- */
-function getStudentIdentifiers(user) {
-  if (!user) return [];
-  return [
-    user.user_id,
-    user.userId,
-    user.regNo,
-    user.username,
-    user.id,
-    user.email
-  ].filter(Boolean).map(s => String(s).toLowerCase().trim());
-}
-
-/**
- * Helper to check if a log belongs to the authenticated student
- */
-function matchesStudentLog(log, studentIdentifiers) {
-  if (!log || !studentIdentifiers || studentIdentifiers.length === 0) return false;
-  const logIds = [
-    log.user_id,
-    log.userId,
-    log.studentId,
-    log.studentRegNo,
-    log.studentEmail
-  ].filter(Boolean).map(s => String(s).toLowerCase().trim());
-
-  return studentIdentifiers.some(id => logIds.includes(id));
-}
-
-/**
- * @route   GET /api/student/dashboard
- * @desc    Fetch overview metrics & dashboard info for student
- */
-router.get('/dashboard', (req, res) => {
-  const myIds = getStudentIdentifiers(req.user);
-
-  const upcomingSessions = (db.gymRequests || []).filter(
-    r => myIds.includes(String(r.studentId || '').toLowerCase()) && r.status === 'approved'
-  );
-
-  const pendingRequests = (db.gymRequests || []).filter(
-    r => myIds.includes(String(r.studentId || '').toLowerCase()) && r.status === 'pending'
-  );
-
-  const borrowedEquipment = (db.borrowLogs || []).filter(
-    b => matchesStudentLog(b, myIds) && (b.status === 'borrowed' || b.status === 'taken')
-  );
-
-  const workoutPlan = (db.workoutPlans || []).find(
-    w => myIds.includes(String(w.studentId || '').toLowerCase())
-  ) || null;
-
-  const { isNoticeVisibleToUser } = require('./notices');
-  const notices = (db.notices || []).filter(n => isNoticeVisibleToUser(n, req.user));
-
-  res.json({
-    success: true,
-    data: {
-      student: req.user,
-      upcomingSessionsCount: upcomingSessions.length,
-      upcomingSessions,
-      pendingRequestsCount: pendingRequests.length,
-      pendingRequests,
-      borrowedEquipmentCount: borrowedEquipment.length,
-      borrowedEquipment,
-      workoutPlan,
-      notices
-    }
-  });
-});
-
 /**
  * @route   GET /api/student/coaches
  * @desc    Get all active coaches from database for schedule booking dropdown
@@ -103,6 +27,89 @@ router.get('/coaches', (req, res) => {
     coaches
   });
 });
+
+// All subsequent routes require authenticated Student or Admin
+router.use(authenticateToken);
+
+/**
+ * Helper to get all lowercase unique identifiers for the authenticated user
+ */
+function getStudentIdentifiers(user) {
+  if (!user) return [];
+  return [
+    user.user_id,
+    user.userId,
+    user.regNo,
+    user.username,
+    user.id,
+    user.name,
+    user.email
+  ].filter(Boolean).map(s => String(s).toLowerCase().trim());
+}
+
+/**
+ * Helper to check if a log belongs to the authenticated student
+ */
+function matchesStudentLog(log, studentIdentifiers) {
+  if (!log || !studentIdentifiers || studentIdentifiers.length === 0) return false;
+  const logIds = [
+    log.id,
+    log.user_id,
+    log.userId,
+    log.studentId,
+    log.studentRegNo,
+    log.studentEmail,
+    log.studentUserKey,
+    log.studentName,
+    log.userName,
+    log.username
+  ].filter(Boolean).map(s => String(s).toLowerCase().trim());
+
+  return studentIdentifiers.some(id => logIds.includes(id));
+}
+
+/**
+ * @route   GET /api/student/dashboard
+ * @desc    Fetch overview metrics & dashboard info for student
+ */
+router.get('/dashboard', (req, res) => {
+  const myIds = getStudentIdentifiers(req.user);
+
+  const upcomingSessions = (db.gymRequests || []).filter(
+    r => matchesStudentLog(r, myIds) && r.status === 'approved'
+  );
+
+  const pendingRequests = (db.gymRequests || []).filter(
+    r => matchesStudentLog(r, myIds) && r.status === 'pending'
+  );
+
+  const borrowedEquipment = (db.borrowLogs || []).filter(
+    b => matchesStudentLog(b, myIds) && (b.status === 'borrowed' || b.status === 'taken')
+  );
+
+  const workoutPlan = (db.workoutPlans || []).find(
+    w => matchesStudentLog(w, myIds)
+  ) || (db.gymRequests || []).find(r => matchesStudentLog(r, myIds) && r.status === 'approved' && r.assignedExercises && r.assignedExercises.length > 0) || null;
+
+  const { isNoticeVisibleToUser } = require('./notices');
+  const notices = (db.notices || []).filter(n => isNoticeVisibleToUser(n, req.user));
+
+  res.json({
+    success: true,
+    data: {
+      student: req.user,
+      upcomingSessionsCount: upcomingSessions.length,
+      upcomingSessions,
+      pendingRequestsCount: pendingRequests.length,
+      pendingRequests,
+      borrowedEquipmentCount: borrowedEquipment.length,
+      borrowedEquipment,
+      workoutPlan,
+      notices
+    }
+  });
+});
+
 
 /**
  * @route   GET /api/student/borrow-history

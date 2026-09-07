@@ -31,6 +31,67 @@ function getUniXsportToken() {
            '';
 }
 
+function getCoachApiBase() {
+    if (typeof window !== 'undefined' && window.UniXsportAPI && typeof window.UniXsportAPI.getBaseUrl === 'function') {
+        return window.UniXsportAPI.getBaseUrl();
+    }
+    if (typeof window !== 'undefined' && window.API_BASE_URL) {
+        return window.API_BASE_URL;
+    }
+    return (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+        ? 'http://localhost:5000'
+        : 'https://unixsport-api.onrender.com';
+}
+
+function getCoachApiHosts() {
+    const primary = getCoachApiBase();
+    return [
+        primary,
+        'https://unixsport-api.onrender.com',
+        'http://localhost:5000',
+        'http://127.0.0.1:5000'
+    ].filter(Boolean).filter((h, idx, arr) => arr.indexOf(h) === idx);
+}
+
+async function fetchCoachAPI(endpoint, options = {}) {
+    const token = getUniXsportToken();
+    const headers = {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+    };
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const hosts = getCoachApiHosts();
+    let lastError = null;
+    for (const host of hosts) {
+        try {
+            const url = host ? `${host}${endpoint}` : endpoint;
+            const res = await fetch(url, { ...options, headers });
+            
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const text = await res.text();
+                if (text.trim().startsWith('<')) continue;
+                try {
+                    return JSON.parse(text);
+                } catch(e) { continue; }
+            }
+
+            const data = await res.json();
+            if (res.ok) return data;
+            if (data && data.error) throw new Error(data.error);
+        } catch(err) {
+            lastError = err;
+            if (err.message && !err.message.includes('fetch') && !err.message.includes('NetworkError') && !err.message.includes('Failed to fetch')) {
+                throw err;
+            }
+        }
+    }
+    throw lastError || new Error('Network error: Unable to reach backend server.');
+}
+
 // ========== Data Storage (Connected 100% to Local Database) ==========
 let studentRequests = [];
 let approvedSchedules = [];
@@ -139,38 +200,6 @@ function filterByCurrentCoach(requests) {
 async function loadRequestsDatabase() {
     try {
         let allReqs = [];
-
-        // 1. Try UniXsportAPI helper
-        if (window.UniXsportAPI && typeof window.UniXsportAPI.getCoachDashboard === 'function') {
-            try {
-                const res = await window.UniXsportAPI.getCoachDashboard();
-                if (res && res.success) {
-                    allReqs = res.allRequests || res.pendingRequests || [];
-                }
-            } catch (apiErr) {}
-        }
-
-        // 2. Multi-host fallback with all token keys
-        if (!allReqs || allReqs.length === 0) {
-            const token = localStorage.getItem('unixsport_jwt_token') ||
-                          localStorage.getItem('token') ||
-                          localStorage.getItem('authToken') ||
-                          (window.UniXsportAPI && typeof window.UniXsportAPI.getToken === 'function' ? window.UniXsportAPI.getToken() : '');
-
-            const endpoints = [
-                '/api/coach/dashboard',
-                'http://localhost:5000/api/coach/dashboard',
-                'http://127.0.0.1:5000/api/coach/dashboard'
-            ];
-
-            for (const ep of endpoints) {
-                try {
-                    const res = await fetch(ep, {
-                        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-                    });
-                    if (res.ok) {
-                        const parsed = await res.json();
-                        if (parsed && parsed.success) {
                             allReqs = parsed.allRequests || parsed.pendingRequests || [];
                             break;
                         }
@@ -992,27 +1021,12 @@ async function viewRequestDetails(requestId) {
             const studentIdToFetch = request.studentRegNo || request.studentId;
             let progressData = null;
 
-            const endpoints = [
-                `/api/coach/student-progress/${studentIdToFetch}`,
-                `http://localhost:5000/api/coach/student-progress/${studentIdToFetch}`,
-                `http://127.0.0.1:5000/api/coach/student-progress/${studentIdToFetch}`
-            ];
-
-            const token = getUniXsportToken();
-            for (const ep of endpoints) {
-                try {
-                    const res = await fetch(ep, {
-                        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-                    });
-                    if (res.ok) {
-                        const parsed = await res.json();
-                        if (parsed.success && parsed.plan && parsed.plan.exercises && parsed.plan.exercises.length > 0) {
-                            progressData = parsed.plan.exercises;
-                            break;
-                        }
-                    }
-                } catch (err) {}
-            }
+            try {
+                const parsed = await fetchCoachAPI(`/api/coach/student-progress/${studentIdToFetch}`);
+                if (parsed && parsed.success && parsed.plan && parsed.plan.exercises && parsed.plan.exercises.length > 0) {
+                    progressData = parsed.plan.exercises;
+                }
+            } catch (err) {}
 
             if (progressData && progressData.length > 0) {
                 progressSection.style.display = 'block';
@@ -1109,25 +1123,10 @@ async function approveRequest() {
             formData.append('schedulePdf', pdfFile);
         }
 
-        const endpoints = [
-            '/api/coach/approve-request',
-            'http://localhost:5000/api/coach/approve-request',
-            'http://127.0.0.1:5000/api/coach/approve-request'
-        ];
-
-        for (const ep of endpoints) {
-            try {
-                const token = getUniXsportToken();
-                const res = await fetch(ep, {
-                    method: 'POST',
-                    headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-                    body: formData
-                });
-                if (res.ok) {
-                    break;
-                }
-            } catch (e) {}
-        }
+        await fetchCoachAPI('/api/coach/approve-request', {
+            method: 'POST',
+            body: formData
+        });
 
         await loadRequestsDatabase();
 
@@ -1172,28 +1171,10 @@ async function rejectRequest() {
             comment: comment
         };
 
-        const endpoints = [
-            '/api/coach/reject-request',
-            'http://localhost:5000/api/coach/reject-request',
-            'http://127.0.0.1:5000/api/coach/reject-request'
-        ];
-
-        for (const ep of endpoints) {
-            try {
-                const token = getUniXsportToken();
-                const res = await fetch(ep, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
-                    body: JSON.stringify(payload)
-                });
-                if (res.ok) {
-                    break;
-                }
-            } catch (e) {}
-        }
+        await fetchCoachAPI('/api/coach/reject-request', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
 
         await loadRequestsDatabase();
 
@@ -1473,25 +1454,9 @@ function renderSelectedExerciseTags() {
 }// ========== Coach Notices & Broadcast Functions ==========
 async function fetchCoachNotices() {
     try {
-        const endpoints = [
-            '/api/notices',
-            'http://localhost:5000/api/notices',
-            'http://127.0.0.1:5000/api/notices'
-        ];
-        const token = getUniXsportToken();
-        for (const ep of endpoints) {
-            try {
-                const res = await fetch(ep, {
-                    headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.success && Array.isArray(data.notices)) {
-                        notices = data.notices;
-                        break;
-                    }
-                }
-            } catch(e) {}
+        const data = await fetchCoachAPI('/api/notices');
+        if (data && data.success && Array.isArray(data.notices)) {
+            notices = data.notices;
         }
     } catch(err) {
         console.warn('Failed to fetch coach notices:', err);
