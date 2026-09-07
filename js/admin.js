@@ -1237,14 +1237,14 @@ document.getElementById('cancelEquipmentBtn')?.addEventListener('click', () => {
 
 document.getElementById('equipmentForm')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const id = document.getElementById('equipmentId').value;
+    const id = document.getElementById('equipmentId').value.trim();
     const name = document.getElementById('equipmentName').value.trim();
     const quantity = parseInt(document.getElementById('equipmentQuantity').value) || 0;
     const status = document.getElementById('equipmentStatus').value;
-    const roomId = parseInt(document.getElementById('equipmentRoom').value);
-    const room = sportsRooms.find(r => r.id === roomId);
+    const roomSelect = document.getElementById('equipmentRoom');
+    const selectedRoom = roomSelect?.options[roomSelect.selectedIndex]?.text || roomSelect?.value || 'Main Gym Hall';
 
-    if (!name || quantity < 1 || !roomId) {
+    if (!name || quantity < 1) {
         showToast('Please fill all required fields.', 'error');
         return;
     }
@@ -1261,7 +1261,8 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
                 borrowedQty: status === 'borrowed' ? quantity : 0,
                 damagedQty: status === 'damaged' ? quantity : 0,
                 status,
-                sportsRoom: room?.name || 'Main Gym Hall',
+                sportsRoom: selectedRoom,
+                room: selectedRoom,
                 description: document.getElementById('equipmentDescription')?.value || ''
             });
             showToast('Equipment updated successfully in database!', 'success');
@@ -1270,8 +1271,9 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
                 name,
                 category: 'Sports Equipment',
                 totalQty: quantity,
-                sportsRoom: room?.name || 'Main Gym Hall',
-                location: room?.name || 'Building A',
+                sportsRoom: selectedRoom,
+                room: selectedRoom,
+                location: selectedRoom,
                 description: document.getElementById('equipmentDescription')?.value || ''
             });
             showToast('Equipment added to database!', 'success');
@@ -1289,29 +1291,53 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
 });
 
 function editEquipment(id) {
-    const eq = equipment.find(e => String(e.id) === String(id));
-    if (!eq) return;
+    const targetId = String(id || '').toLowerCase().trim();
+    const eq = equipment.find(e => String(e.id).toLowerCase().trim() === targetId);
+    if (!eq) {
+        console.error('Equipment not found:', id);
+        return;
+    }
 
     document.getElementById('equipmentModalTitle').textContent = 'Edit Equipment';
     document.getElementById('equipmentId').value = eq.id;
     document.getElementById('equipmentName').value = eq.name;
     document.getElementById('equipmentQuantity').value = eq.quantity || eq.total || 1;
     document.getElementById('equipmentStatus').value = eq.status || 'available';
-    document.getElementById('equipmentRoom').innerHTML = '';
-    sportsRooms.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.textContent = r.name;
-        opt.selected = r.name === eq.sportsRoom || r.id === eq.roomId;
-        document.getElementById('equipmentRoom').appendChild(opt);
-    });
+    
+    const roomSelect = document.getElementById('equipmentRoom');
+    if (roomSelect) {
+        roomSelect.innerHTML = '<option value="">Select room...</option>';
+        sportsRooms.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = r.name;
+            if (r.name === eq.sportsRoom || r.name === eq.roomName || String(r.id) === String(eq.roomId)) {
+                opt.selected = true;
+            }
+            roomSelect.appendChild(opt);
+        });
+        const currentRoom = eq.sportsRoom || eq.roomName || 'Main Gym Hall';
+        const exists = sportsRooms.some(r => r.name.toLowerCase() === currentRoom.toLowerCase());
+        if (!exists && currentRoom) {
+            const opt = document.createElement('option');
+            opt.value = currentRoom;
+            opt.textContent = currentRoom;
+            opt.selected = true;
+            roomSelect.appendChild(opt);
+        }
+    }
+    
     document.getElementById('equipmentDescription').value = eq.description || '';
     document.getElementById('equipmentModal').classList.add('show');
 }
 
 function confirmDeleteEquipment(id) {
-    const eq = equipment.find(e => String(e.id) === String(id));
-    if (!eq) return;
+    const targetId = String(id || '').toLowerCase().trim();
+    const eq = equipment.find(e => String(e.id).toLowerCase().trim() === targetId);
+    if (!eq) {
+        console.error('Equipment not found for deletion:', id);
+        return;
+    }
 
     document.getElementById('deleteModalTitle').textContent = 'Delete Equipment';
     document.getElementById('deleteModalMessage').textContent = `Are you sure you want to delete ${eq.name}?`;
@@ -1324,10 +1350,14 @@ function confirmDeleteEquipment(id) {
 
     confirmBtn.onclick = async () => {
         try {
-            await window.UniXsportAPI.deleteEquipmentAdmin(id);
-            showToast('Equipment deleted from database!', 'success');
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            await window.UniXsportAPI.deleteEquipmentAdmin(eq.id);
+            showToast(`✓ Equipment "${eq.name}" deleted from database!`, 'success');
         } catch(e) {
             showToast(e.message || 'Equipment removed.', 'info');
+        } finally {
+            confirmBtn.disabled = false;
         }
         await loadAdminData();
         document.getElementById('deleteModal').classList.remove('show');
