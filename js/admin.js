@@ -613,12 +613,10 @@ function renderEquipment() {
     const emptyState = document.getElementById('noEquipment');
     const search = document.getElementById('equipmentSearch')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('equipmentStatusFilter')?.value || '';
-    const roomFilter = document.getElementById('equipmentRoomFilter')?.value || '';
 
     let filtered = equipment;
     if (search) filtered = filtered.filter(e => e.name.toLowerCase().includes(search));
     if (statusFilter) filtered = filtered.filter(e => e.status === statusFilter);
-    if (roomFilter) filtered = filtered.filter(e => e.roomId == roomFilter);
 
     if (filtered.length === 0) {
         tbody.innerHTML = '';
@@ -633,7 +631,6 @@ function renderEquipment() {
             <td>${e.quantity}</td>
             <td>${e.available}</td>
             <td><span class="status-badge ${e.status}">${e.status}</span></td>
-            <td>${e.roomName}</td>
             <td>
                 <div class="table-actions">
                     <button class="btn btn-sm btn-outline" onclick="editEquipment('${e.id}')">
@@ -1241,8 +1238,6 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
     const name = document.getElementById('equipmentName').value.trim();
     const quantity = parseInt(document.getElementById('equipmentQuantity').value) || 0;
     const status = document.getElementById('equipmentStatus').value;
-    const roomSelect = document.getElementById('equipmentRoom');
-    const selectedRoom = roomSelect?.options[roomSelect.selectedIndex]?.text || roomSelect?.value || 'Main Gym Hall';
 
     if (!name || quantity < 1) {
         showToast('Please fill all required fields.', 'error');
@@ -1261,8 +1256,6 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
                 borrowedQty: status === 'borrowed' ? quantity : 0,
                 damagedQty: status === 'damaged' ? quantity : 0,
                 status,
-                sportsRoom: selectedRoom,
-                room: selectedRoom,
                 description: document.getElementById('equipmentDescription')?.value || ''
             });
             showToast('Equipment updated successfully in database!', 'success');
@@ -1271,9 +1264,6 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
                 name,
                 category: 'Sports Equipment',
                 totalQty: quantity,
-                sportsRoom: selectedRoom,
-                room: selectedRoom,
-                location: selectedRoom,
                 description: document.getElementById('equipmentDescription')?.value || ''
             });
             showToast('Equipment added to database!', 'success');
@@ -1303,30 +1293,6 @@ function editEquipment(id) {
     document.getElementById('equipmentName').value = eq.name;
     document.getElementById('equipmentQuantity').value = eq.quantity || eq.total || 1;
     document.getElementById('equipmentStatus').value = eq.status || 'available';
-    
-    const roomSelect = document.getElementById('equipmentRoom');
-    if (roomSelect) {
-        roomSelect.innerHTML = '<option value="">Select room...</option>';
-        sportsRooms.forEach(r => {
-            const opt = document.createElement('option');
-            opt.value = r.id;
-            opt.textContent = r.name;
-            if (r.name === eq.sportsRoom || r.name === eq.roomName || String(r.id) === String(eq.roomId)) {
-                opt.selected = true;
-            }
-            roomSelect.appendChild(opt);
-        });
-        const currentRoom = eq.sportsRoom || eq.roomName || 'Main Gym Hall';
-        const exists = sportsRooms.some(r => r.name.toLowerCase() === currentRoom.toLowerCase());
-        if (!exists && currentRoom) {
-            const opt = document.createElement('option');
-            opt.value = currentRoom;
-            opt.textContent = currentRoom;
-            opt.selected = true;
-            roomSelect.appendChild(opt);
-        }
-    }
-    
     document.getElementById('equipmentDescription').value = eq.description || '';
     document.getElementById('equipmentModal').classList.add('show');
 }

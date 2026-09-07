@@ -588,7 +588,7 @@
 
         <!-- Equipment Management Page -->
         <section id="page-equipment" class="page">
-            <h1 class="page-title">Equipment & Sports Room Management</h1>
+            <h1 class="page-title">Equipment Management</h1>
             <div class="page-controls">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
@@ -599,9 +599,6 @@
                     <option value="available">Available</option>
                     <option value="borrowed">Borrowed</option>
                     <option value="damaged">Damaged</option>
-                </select>
-                <select id="equipmentRoomFilter" class="filter-select">
-                    <option value="">All Rooms</option>
                 </select>
                 <button class="btn btn-primary" id="addEquipmentBtn">
                     <i class="fas fa-plus"></i> Add Equipment
@@ -615,7 +612,6 @@
                             <th>Quantity</th>
                             <th>Available</th>
                             <th>Status</th>
-                            <th>Sports Room</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -855,12 +851,6 @@
                             <option value="available">Available</option>
                             <option value="borrowed">Borrowed</option>
                             <option value="damaged">Damaged</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Sports Room <span class="required">*</span></label>
-                        <select id="equipmentRoom" required>
-                            <option value="">Select room...</option>
                         </select>
                     </div>
                     <div class="form-group">

@@ -1905,7 +1905,6 @@ async function confirmAddEquipment() {
     const name     = document.getElementById('newEquipmentName')?.value.trim();
     const category = document.getElementById('newEquipmentCategory')?.value.trim();
     const quantity = parseInt(document.getElementById('newEquipmentQuantity')?.value) || 0;
-    const room     = document.getElementById('newEquipmentRoom')?.value.trim();
     const rfid     = document.getElementById('newEquipmentRFID')?.value.trim();
 
     if (!name || !category || quantity < 1) {
@@ -1922,7 +1921,7 @@ async function confirmAddEquipment() {
             name,
             category,
             totalQty: quantity,
-            room: room || 'Main Gym Hall',
+            room: 'Main Gym Hall',
             rfidTag: rfid || ''
         });
 
@@ -1957,7 +1956,6 @@ async function confirmAddEquipment() {
         document.getElementById('newEquipmentName').value     = '';
         document.getElementById('newEquipmentCategory').value = '';
         document.getElementById('newEquipmentQuantity').value = '1';
-        document.getElementById('newEquipmentRoom').value     = '';
         document.getElementById('newEquipmentRFID').value     = '';
 
         renderStockTable();
@@ -2160,7 +2158,6 @@ async function confirmUpdateEquipment() {
     const category   = document.getElementById('editEquipmentCategory')?.value.trim();
     const totalQty   = parseInt(document.getElementById('editEquipmentTotalQty')?.value);
     let damagedQty   = parseInt(document.getElementById('editEquipmentDamagedQty')?.value);
-    const room       = document.getElementById('editEquipmentRoom')?.value.trim();
     const status     = document.getElementById('editEquipmentStatus')?.value;
     const rfidTag    = document.getElementById('editEquipmentRFID')?.value.trim();
 
@@ -2190,7 +2187,7 @@ async function confirmUpdateEquipment() {
             totalQty,
             damagedQty,
             availableQty: availQty,
-            room: room || 'Main Gym Hall',
+            room: 'Main Gym Hall',
             status: status || 'available',
             rfidTag: rfidTag || ''
         });
