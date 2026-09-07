@@ -300,7 +300,14 @@ class UniXsportAPI {
   static async searchStudentForRfid(userId) {
     return await this.request('/api/storekeeper/search-student', {
       method: 'POST',
-      body: JSON.stringify({ userId })
+      body: JSON.stringify({ userId, studentId: userId })
+    });
+  }
+
+  static async searchEquipmentForRfid(query) {
+    return await this.request('/api/storekeeper/search-equipment', {
+      method: 'POST',
+      body: JSON.stringify({ query, equipmentId: query })
     });
   }
 

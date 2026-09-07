@@ -565,11 +565,11 @@ router.post('/update-equipment', (req, res) => {
  * @desc    Fetch all student patrons and equipment tags directly from DB
  */
 router.get('/rfid-registry', (req, res) => {
-  const studentUsers = db.users.filter(u => u.role === 'student');
+  const studentUsers = (db.users || []).filter(u => (u.role || '').toLowerCase() === 'student');
   res.json({
     success: true,
     students: studentUsers,
-    equipment: db.equipment
+    equipment: db.equipment || []
   });
 });
 

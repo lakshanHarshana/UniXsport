@@ -1887,15 +1887,37 @@ async function postStorekeeperAPI(endpoint, body) {
                 },
                 body: JSON.stringify(body)
             });
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.success) return data;
-            }
+            const data = await res.json().catch(() => null);
+            if (data && typeof data === 'object') return data;
         } catch (e) {}
     }
     return null;
 }
 window.postStorekeeperAPI = postStorekeeperAPI;
+
+async function getStorekeeperAPI(endpoint) {
+    const baseUrl = getStorekeeperApiBase();
+    const urls = [
+        `${baseUrl}${endpoint}`,
+        endpoint,
+        `http://localhost:5000${endpoint}`,
+        `http://127.0.0.1:5000${endpoint}`
+    ];
+    for (const url of urls) {
+        try {
+            const token = getUniXsportToken();
+            const res = await fetch(url, {
+                headers: { 
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+            const data = await res.json().catch(() => null);
+            if (data && typeof data === 'object') return data;
+        } catch (e) {}
+    }
+    return null;
+}
+window.getStorekeeperAPI = getStorekeeperAPI;
 
 let isAddingEquipmentInProgress = false;
 
@@ -2654,25 +2676,12 @@ async function performStudentSearch(isManualSearch) {
     try {
         let foundStudent = null;
 
-        // Always hit the REST endpoint directly – most reliable path
-        try {
-            const fetchRes = await fetch('/api/storekeeper/search-student', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: query })
-            });
-            const jsonData = await fetchRes.json();
-            if (jsonData && jsonData.success && jsonData.student) {
-                foundStudent = jsonData.student;
-            } else if (jsonData && jsonData.error) {
-                throw new Error(jsonData.error);
-            }
-        } catch (fetchErr) {
-            const msg = fetchErr.message || '';
-            if (msg.includes('not belong to a student') || msg.includes('Invalid User')) {
-                throw fetchErr;
-            }
-            // Network error – fall through to local array
+        // Try API endpoint with multi-host fallback
+        const jsonData = await postStorekeeperAPI('/api/storekeeper/search-student', { userId: query, studentId: query });
+        if (jsonData && jsonData.success && jsonData.student) {
+            foundStudent = jsonData.student;
+        } else if (jsonData && jsonData.error) {
+            throw new Error(jsonData.error);
         }
 
         // Local students array fallback (loaded from dashboard sync)
@@ -2680,9 +2689,9 @@ async function performStudentSearch(isManualSearch) {
             const clean = query.toUpperCase();
             foundStudent = students.find(s =>
                 (s.user_id && s.user_id.toUpperCase() === clean) ||
-                (s.id      && s.id.toUpperCase()      === clean) ||
+                (s.id      && String(s.id).toUpperCase() === clean) ||
                 (s.regNo   && s.regNo.toUpperCase()   === clean) ||
-                (s.name    && s.name.toUpperCase()    === clean)
+                (s.name    && s.name.toUpperCase().includes(clean))
             );
         }
 
@@ -2701,8 +2710,8 @@ async function performStudentSearch(isManualSearch) {
         _currentVerifiedStudent = foundStudent;
         if (errBox) errBox.style.display = 'none';
 
-        const studentUid  = foundStudent.user_id  || foundStudent.id  || query;
-        const studentRfid = foundStudent.rfidTag   || foundStudent.rfidCode || foundStudent.rfid || '-';
+        const studentUid  = foundStudent.user_id || foundStudent.id || query;
+        const studentRfid = foundStudent.rfidTag || foundStudent.rfidCode || foundStudent.rfid || '-';
 
         if (nameEl)   nameEl.textContent   = foundStudent.name       || '--';
         if (idEl)     idEl.textContent     = studentUid;
@@ -2729,13 +2738,14 @@ async function performStudentSearch(isManualSearch) {
                 if (errText)  errText.textContent  = 'This User ID does not belong to a student.';
             } else {
                 if (errTitle) errTitle.textContent = 'Student Not Found';
-                if (errText)  errText.textContent  = 'Please enter a valid User ID.';
+                if (errText)  errText.textContent  = msg || 'Please enter a valid User ID.';
             }
         }
         if (isManualSearch) showToast(err.message || 'Student Not Found. Please enter a valid User ID.', 'error');
         return null;
     }
 }
+window.performStudentSearch = performStudentSearch;
 
 // ========== Equipment Search – Global Functions (must be top-level for onclick) ==========
 let _currentVerifiedEquipment = null;
@@ -2805,21 +2815,12 @@ async function performEquipmentSearch(isManualSearch) {
     try {
         let foundEquipment = null;
 
-        // Hit REST endpoint
-        try {
-            const fetchRes = await fetch('/api/storekeeper/search-equipment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: query })
-            });
-            const jsonData = await fetchRes.json();
-            if (jsonData && jsonData.success && jsonData.equipment) {
-                foundEquipment = jsonData.equipment;
-            } else if (jsonData && jsonData.error) {
-                throw new Error(jsonData.error);
-            }
-        } catch (fetchErr) {
-            // fall through to local array
+        // Try API endpoint with multi-host fallback
+        const jsonData = await postStorekeeperAPI('/api/storekeeper/search-equipment', { query: query, equipmentId: query });
+        if (jsonData && jsonData.success && jsonData.equipment) {
+            foundEquipment = jsonData.equipment;
+        } else if (jsonData && jsonData.error) {
+            throw new Error(jsonData.error);
         }
 
         // Local equipmentStock array fallback
@@ -2854,7 +2855,7 @@ async function performEquipmentSearch(isManualSearch) {
         if (idEl)     idEl.textContent     = foundEquipment.id       || '--';
         if (nameEl)   nameEl.textContent   = foundEquipment.name     || '--';
         if (catEl)    catEl.textContent    = foundEquipment.category || '--';
-        if (roomEl)   roomEl.textContent   = foundEquipment.room     || '--';
+        if (roomEl)   roomEl.textContent   = foundEquipment.room || foundEquipment.location || foundEquipment.sportsRoom || '--';
         if (qtyEl)    qtyEl.textContent    = foundEquipment.totalQty !== undefined ? foundEquipment.totalQty : '--';
         if (statusEl) statusEl.textContent = statusCap;
         if (rfidIdEl) rfidIdEl.textContent = eqRfid;
@@ -2871,12 +2872,13 @@ async function performEquipmentSearch(isManualSearch) {
         if (errBox) {
             errBox.style.display = 'block';
             if (errTitle) errTitle.textContent = 'Equipment Not Found';
-            if (errText)  errText.textContent  = 'Please enter a valid Equipment ID or name.';
+            if (errText)  errText.textContent  = err.message || 'Please enter a valid Equipment ID or name.';
         }
         if (isManualSearch) showToast(err.message || 'Equipment Not Found.', 'error');
         return null;
     }
 }
+window.performEquipmentSearch = performEquipmentSearch;
 
 // ========== Assignment Tab Switcher ==========
 function switchAssignTab(tab) {
@@ -3078,19 +3080,17 @@ async function initRfidAssignmentPage() {
             try {
                 let res = null;
                 if (type === 'student') {
-                    const fetchRes = await fetch('/api/storekeeper/assign-student-rfid', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId: targetId, rfidTag: cleanTag })
+                    res = await postStorekeeperAPI('/api/storekeeper/assign-student-rfid', {
+                        userId: targetId,
+                        studentId: targetId,
+                        studentRegNo: targetId,
+                        rfidTag: cleanTag
                     });
-                    res = await fetchRes.json();
                 } else {
-                    const fetchRes = await fetch('/api/storekeeper/assign-equipment-rfid', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ equipmentId: targetId, rfidTag: cleanTag })
+                    res = await postStorekeeperAPI('/api/storekeeper/assign-equipment-rfid', {
+                        equipmentId: targetId,
+                        rfidTag: cleanTag
                     });
-                    res = await fetchRes.json();
                 }
 
                 if (res && res.success) {
@@ -3173,6 +3173,19 @@ async function initRfidAssignmentPage() {
             }
         }
 
+        // Wire Simulate / Enter Tag button
+        const btnSimulate = document.getElementById('btnSimulateScanModalTag');
+        if (btnSimulate) {
+            btnSimulate.onclick = () => {
+                const randHex = () => Math.floor(16 + Math.random() * 239).toString(16).toUpperCase();
+                const defTag = `${randHex()} ${randHex()} ${randHex()} ${randHex()}`;
+                const enteredTag = prompt(`Enter/Simulate RFID Tag UID for ${targetName}:`, defTag);
+                if (enteredTag && enteredTag.trim()) {
+                    handleIncomingTag(enteredTag.trim());
+                }
+            };
+        }
+
         // 1. Listen via SSE from /api/rfid/events
         try {
             if (window.EventSource) {
@@ -3238,20 +3251,42 @@ async function initRfidAssignmentPage() {
 
 async function fetchRfidRegistryData() {
     try {
+        let res = null;
         if (window.UniXsportAPI && typeof window.UniXsportAPI.fetchRfidRegistry === 'function') {
-            const res = await window.UniXsportAPI.fetchRfidRegistry();
-            if (res && res.success) {
-                if (res.students) {
-                    students = res.students.map(u => ({
-                        id: u.user_id || u.regNo || u.id,
-                        user_id: u.user_id || u.userId || 'US002',
-                        regNo: u.regNo || u.user_id || u.id,
-                        name: u.name,
-                        department: u.department || 'Technology',
-                        rfid: u.rfidTag || u.rfidCode || u.rfid || '',
-                        status: u.status || 'Active'
-                    }));
-                }
+            res = await window.UniXsportAPI.fetchRfidRegistry().catch(() => null);
+        }
+        if (!res || !res.success) {
+            res = await getStorekeeperAPI('/api/storekeeper/rfid-registry');
+        }
+        if (res && res.success) {
+            if (Array.isArray(res.students)) {
+                students = res.students.map(u => ({
+                    id: u.user_id || u.regNo || u.id,
+                    user_id: u.user_id || u.userId || 'US002',
+                    regNo: u.regNo || u.user_id || u.id,
+                    name: u.name,
+                    department: u.department || 'Technology',
+                    rfid: u.rfidTag || u.rfidCode || u.rfid || '',
+                    status: u.status || 'Active'
+                }));
+            }
+            if (Array.isArray(res.equipment)) {
+                equipmentStock = res.equipment.map(e => ({
+                    id: e.id,
+                    name: e.name,
+                    category: e.category || 'General Sports',
+                    total: e.totalQty !== undefined ? e.totalQty : (e.total || 0),
+                    totalQty: e.totalQty !== undefined ? e.totalQty : (e.total || 0),
+                    available: e.availableQty !== undefined ? e.availableQty : (e.available || 0),
+                    availableQty: e.availableQty !== undefined ? e.availableQty : (e.available || 0),
+                    borrowed: e.borrowedQty || 0,
+                    damaged: e.damagedQty || 0,
+                    status: e.status || 'available',
+                    sportsRoom: e.room || e.sportsRoom || e.location || 'Main Gym Hall',
+                    room: e.room || e.sportsRoom || e.location || 'Main Gym Hall',
+                    location: e.location || e.sportsRoom || e.room || 'Main Gym Hall',
+                    rfidTag: e.rfidTag || e.rfidCode || e.rfid || ''
+                }));
             }
         }
     } catch (e) {
