@@ -636,10 +636,10 @@ function renderEquipment() {
             <td>${e.roomName}</td>
             <td>
                 <div class="table-actions">
-                    <button class="btn btn-sm btn-outline" onclick="editEquipment(${e.id})">
+                    <button class="btn btn-sm btn-outline" onclick="editEquipment('${e.id}')">
                         <i class="fas fa-edit"></i> Edit
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="confirmDeleteEquipment(${e.id})">
+                    <button class="btn btn-sm btn-danger" onclick="confirmDeleteEquipment('${e.id}')">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </div>

@@ -536,7 +536,8 @@ router.patch('/equipment/:id', (req, res) => {
 router.delete('/equipment/:id', (req, res) => {
   if (!db.equipment) return res.status(404).json({ success: false, error: 'Equipment not found.' });
 
-  const index = db.equipment.findIndex(e => String(e.id) === String(req.params.id));
+  const targetId = String(req.params.id || '').toLowerCase().trim();
+  const index = db.equipment.findIndex(e => String(e.id).toLowerCase().trim() === targetId);
   if (index === -1) {
     return res.status(404).json({ success: false, error: 'Equipment not found.' });
   }
