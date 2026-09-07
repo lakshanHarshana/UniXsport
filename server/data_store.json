@@ -51,6 +51,38 @@
       "profilePhoto": "",
       "createdAt": "2026-09-07T18:55:08.169Z",
       "rfid": "A1B2C3D4"
+    },
+    {
+      "id": "usr_1788808730908_61usn",
+      "user_id": "US003",
+      "userId": "US003",
+      "regNo": "ITT/2023/200",
+      "username": "ITT/2023/200",
+      "name": "Saman Kumara",
+      "email": "saman.k@rjt.ac.lk",
+      "phone": "",
+      "gender": "",
+      "year": "",
+      "faculty": "Technology",
+      "department": "Technology",
+      "age": "23",
+      "height": "178",
+      "weight": "72",
+      "fitnessLevel": "Intermediate",
+      "injuryHistory": "None",
+      "trainingGoal": "Build Muscle",
+      "bio": "Mobile updated bio text",
+      "passwordHash": "$2a$10$5WmLxz0AAvjhkvKLxiWCD./9X9Q7M0UOd22/SNj7ZDvcTgaDFpcmy",
+      "password": "password123",
+      "role": "student",
+      "rfidTag": "",
+      "rfidCode": "",
+      "status": "active",
+      "avatarUrl": "/uploads/avatars/student_US003_1788808730983.png",
+      "profileImage": "/uploads/avatars/student_US003_1788808730983.png",
+      "profilePhoto": "/uploads/avatars/student_US003_1788808730983.png",
+      "createdAt": "2026-09-07T19:18:50.908Z",
+      "updatedAt": "2026-09-07T19:18:50.983Z"
     }
   ],
   "equipment": [
@@ -208,6 +240,18 @@
       "userId": "usr_admin",
       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl9hZG1pbiIsInVzZXJfaWQiOiJVUzAwMSIsInVzZXJJZCI6IlVTMDAxIiwicmVnTm8iOiJhZG1pbiIsIm5hbWUiOiJTeXN0ZW0gQWRtaW5pc3RyYXRvciIsImVtYWlsIjoiYWRtaW5AdW5peHNwb3J0LmVkdSIsInJvbGUiOiJhZG1pbiIsImRlcGFydG1lbnQiOiJTcG9ydHMgRGlyZWN0b3JhdGUiLCJyZmlkVGFnIjoiQURNSU5fUkZJRF85OSIsImlhdCI6MTc4ODgwODEyMCwiZXhwIjoxNzg4ODk0NTIwfQ.AKX_knV0WoQDbEVOfJYScN4dfATr2PYqpsENZDgu1js",
       "loggedInAt": "2026-09-07T19:08:40.359Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_1788808730908_61usn",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA4NzMwOTA4XzYxdXNuIiwidXNlcl9pZCI6IlVTMDAzIiwidXNlcklkIjoiVVMwMDMiLCJyZWdObyI6IklUVC8yMDIzLzIwMCIsIm5hbWUiOiJTYW1hbiBLdW1hcmEiLCJlbWFpbCI6InNhbWFuLmtAcmp0LmFjLmxrIiwicm9sZSI6InN0dWRlbnQiLCJkZXBhcnRtZW50IjoiVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDg3MzAsImV4cCI6MTc4ODg5NTEzMH0.3HiSn-CLJ_w2Q2-zM8Eg4yp2rt0Q_DAMVtjxjJMg1PI",
+      "loggedInAt": "2026-09-07T19:18:50.976Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_1788808730908_61usn",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA4NzMwOTA4XzYxdXNuIiwidXNlcl9pZCI6IlVTMDAzIiwidXNlcklkIjoiVVMwMDMiLCJyZWdObyI6IklUVC8yMDIzLzIwMCIsIm5hbWUiOiJTYW1hbiBLdW1hcmEiLCJlbWFpbCI6InNhbWFuLmtAcmp0LmFjLmxrIiwicm9sZSI6InN0dWRlbnQiLCJkZXBhcnRtZW50IjoiVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDg3MzEsImV4cCI6MTc4ODg5NTEzMX0.IDa0iLoY5-TDu0i6Cv3y5C5CARlktey3RIIEKetcu1g",
+      "loggedInAt": "2026-09-07T19:18:51.058Z",
       "revoked": false
     }
   ],

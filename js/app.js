@@ -14,6 +14,50 @@ function getUniXsportToken() {
            '';
 }
 
+const STUDENT_API_HOSTS = [
+    (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : '',
+    'https://unixsport-api.onrender.com',
+    'http://localhost:5000',
+    'http://127.0.0.1:5000',
+    ''
+].filter((h, idx, arr) => arr.indexOf(h) === idx);
+
+async function fetchStudentAPI(endpoint, options = {}) {
+    const token = getUniXsportToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+    };
+
+    let lastError = null;
+    for (const host of STUDENT_API_HOSTS) {
+        try {
+            const url = host ? `${host}${endpoint}` : endpoint;
+            const res = await fetch(url, { ...options, headers });
+            
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                const text = await res.text();
+                if (text.trim().startsWith('<')) continue;
+                try {
+                    return JSON.parse(text);
+                } catch(e) { continue; }
+            }
+
+            const data = await res.json();
+            if (res.ok) return data;
+            if (data && data.error) throw new Error(data.error);
+        } catch(err) {
+            lastError = err;
+            if (err.message && !err.message.includes('fetch') && !err.message.includes('NetworkError') && !err.message.includes('Failed to fetch')) {
+                throw err;
+            }
+        }
+    }
+    throw lastError || new Error('Network error: Unable to reach backend server.');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     loadProfileFromStorage();
     initNavigation();
@@ -561,38 +605,22 @@ function initEditProfileForm() {
         let serverErrorMsg = '';
 
         try {
-            const endpoints = [
-                '/api/student/update-profile',
-                'http://localhost:5000/api/student/update-profile',
-                'http://127.0.0.1:5000/api/student/update-profile'
-            ];
+            const resData = await fetchStudentAPI('/api/student/update-profile', {
+                method: 'POST',
+                body: JSON.stringify(updatedData)
+            });
 
-            for (const ep of endpoints) {
-                try {
-                    const token = getUniXsportToken();
-                    const res = await fetch(ep, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                        },
-                        body: JSON.stringify(updatedData)
-                    });
-                    const parsed = await res.json();
-                    if (res.ok && parsed.success) {
-                        updateSuccess = true;
-                        if (parsed.user) {
-                            Object.assign(updatedData, parsed.user);
-                        }
-                        break;
-                    } else if (parsed && parsed.error) {
-                        serverErrorMsg = parsed.error;
-                        break;
-                    }
-                } catch (epErr) {}
+            if (resData && resData.success) {
+                updateSuccess = true;
+                if (resData.user) {
+                    Object.assign(updatedData, resData.user);
+                }
+            } else if (resData && resData.error) {
+                serverErrorMsg = resData.error;
             }
         } catch (apiErr) {
             console.warn('Backend profile update note:', apiErr);
+            serverErrorMsg = apiErr.message;
         }
 
         if (!updateSuccess && serverErrorMsg) {
@@ -638,7 +666,7 @@ function initEditProfileForm() {
         const studentRegNoEl = document.getElementById('studentRegNo');
         if (studentRegNoEl) studentRegNoEl.textContent = regNo;
 
-        showToast('Profile and security details updated successfully!', 'success');
+        showToast('Profile and security details updated successfully in database!', 'success');
 
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -673,6 +701,18 @@ function updateProfileDisplay(data) {
     set('profileRegNo', regNo);
     set('profileEmail', email);
     set('profileFaculty', faculty);
+
+    // Profile Photo update
+    const photoUrl = data.profilePhoto || data.profileImage || data.avatarUrl;
+    if (photoUrl) {
+        const img = document.getElementById('profileImg');
+        const display = document.getElementById('profilePhotoDisplay');
+        if (img) {
+            img.src = photoUrl;
+            img.style.display = 'block';
+        }
+        display?.querySelector('.placeholder-icon')?.style.setProperty('display', 'none');
+    }
 
     // Auto-fill request schedule form fields if present
     const reqName = document.getElementById('reqScheduleName');
@@ -718,38 +758,18 @@ async function loadProfileFromStorage() {
         weight: '',
         fitnessLevel: '',
         injuryHistory: '',
-        trainingGoal: ''
+        trainingGoal: '',
+        profilePhoto: studentUser?.profilePhoto || studentUser?.avatarUrl || ''
     };
 
     const initialData = { ...fallbackProfile, ...(localData || {}) };
     updateProfileDisplay(initialData);
 
-    // Fetch latest profile from database asynchronously
+    // Fetch latest profile from database asynchronously (via multi-host API)
     try {
-        let dbUser = null;
-        const endpoints = [
-            '/api/student/profile',
-            'http://localhost:5000/api/student/profile',
-            'http://127.0.0.1:5000/api/student/profile'
-        ];
-
-        for (const ep of endpoints) {
-            try {
-                const token = getUniXsportToken();
-                const res = await fetch(ep, {
-                    headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-                });
-                if (res.ok) {
-                    const parsed = await res.json();
-                    if (parsed && parsed.success && parsed.user) {
-                        dbUser = parsed.user;
-                        break;
-                    }
-                }
-            } catch (e) {}
-        }
-
-        if (dbUser) {
+        const resData = await fetchStudentAPI('/api/student/profile');
+        if (resData && resData.success && resData.user) {
+            const dbUser = resData.user;
             const merged = {
                 ...initialData,
                 ...dbUser,
@@ -757,13 +777,19 @@ async function loadProfileFromStorage() {
                 regNo: dbUser.regNo || initialData.regNo,
                 email: dbUser.email || initialData.email,
                 faculty: dbUser.faculty || dbUser.department || initialData.faculty,
-                department: dbUser.department || dbUser.faculty || initialData.department
+                department: dbUser.department || dbUser.faculty || initialData.department,
+                profilePhoto: dbUser.profilePhoto || dbUser.profileImage || dbUser.avatarUrl || initialData.profilePhoto,
+                avatarUrl: dbUser.avatarUrl || dbUser.profilePhoto || dbUser.profileImage || initialData.profilePhoto
             };
             localStorage.setItem(profileKey, JSON.stringify(merged));
             if (merged.user_id) localStorage.setItem('user_id', merged.user_id);
             if (merged.regNo) localStorage.setItem('userRegNo', merged.regNo);
             if (merged.email) localStorage.setItem('userEmail', merged.email);
             if (merged.faculty) localStorage.setItem('userFaculty', merged.faculty);
+            if (merged.profilePhoto) {
+                const photoKey = 'unixsport_profile_photo_' + (merged.regNo || userName).replace(/\//g, '_');
+                localStorage.setItem(photoKey, merged.profilePhoto);
+            }
             updateProfileDisplay(merged);
         }
     } catch (err) {
@@ -1232,18 +1258,33 @@ function initProfilePhoto() {
     const handlePhotoFile = (file) => {
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
-            reader.onload = (ev) => {
+            reader.onload = async (ev) => {
                 const base64 = ev.target.result;
-                // Update DOM
+                // Update DOM immediately
                 if (img) {
                     img.src = base64;
                     img.style.display = 'block';
                 }
                 display?.querySelector('.placeholder-icon')?.style.setProperty('display', 'none');
                 
-                // Persist to storage
+                // Persist locally for instant offline display
                 localStorage.setItem(photoKey, base64);
-                showToast('Profile photo updated successfully!', 'success');
+                
+                // Upload to backend database API across all devices
+                try {
+                    const res = await fetchStudentAPI('/api/student/upload-photo', {
+                        method: 'POST',
+                        body: JSON.stringify({ base64Image: base64, image: base64 })
+                    });
+                    if (res && res.success) {
+                        showToast('Profile photo saved to database successfully!', 'success');
+                    } else {
+                        showToast('Profile photo updated locally.', 'info');
+                    }
+                } catch(e) {
+                    console.warn('Profile photo cloud sync note:', e.message);
+                    showToast('Profile photo updated locally.', 'info');
+                }
             };
             reader.readAsDataURL(file);
         }

@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
+const config = require('../config');
 const { db, saveDatabase } = require('../db');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
@@ -511,6 +514,9 @@ router.get('/profile', (req, res) => {
       name: user.name,
       regNo: user.regNo,
       email: user.email,
+      phone: user.phone || '',
+      gender: user.gender || '',
+      year: user.year || '',
       role: user.role,
       department: user.department || user.faculty || 'Technology',
       faculty: user.faculty || user.department || 'Technology',
@@ -522,7 +528,9 @@ router.get('/profile', (req, res) => {
       injuryHistory: user.injuryHistory || 'None',
       trainingGoal: user.trainingGoal || 'Not Set',
       bio: user.bio || 'Member of Rajarata University Sports & Gym Club.',
-      avatarUrl: user.avatarUrl || ''
+      avatarUrl: user.avatarUrl || user.profilePhoto || user.profileImage || '',
+      profilePhoto: user.profilePhoto || user.profileImage || user.avatarUrl || '',
+      profileImage: user.profileImage || user.profilePhoto || user.avatarUrl || ''
     }
   });
 });
@@ -562,10 +570,14 @@ router.post('/update-profile', async (req, res) => {
     injuryHistory,
     trainingGoal,
     phone,
+    gender,
+    year,
     department,
     faculty,
     bio,
     avatarUrl,
+    profilePhoto,
+    profileImage,
     email,
     regNo,
     currentPassword,
@@ -599,10 +611,18 @@ router.post('/update-profile', async (req, res) => {
   if (injuryHistory !== undefined) user.injuryHistory = injuryHistory;
   if (trainingGoal !== undefined) user.trainingGoal = trainingGoal;
   if (phone !== undefined) user.phone = phone;
+  if (gender !== undefined) user.gender = gender;
+  if (year !== undefined) user.year = year;
   if (faculty !== undefined) { user.faculty = faculty; user.department = faculty; }
   if (department !== undefined) { user.department = department; if (!user.faculty) user.faculty = department; }
   if (bio !== undefined) user.bio = bio;
-  if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+  
+  const photoVal = profilePhoto || profileImage || avatarUrl;
+  if (photoVal !== undefined) {
+    user.avatarUrl = photoVal;
+    user.profilePhoto = photoVal;
+    user.profileImage = photoVal;
+  }
 
   // Handle password update if supplied
   if (newPassword && String(newPassword).trim().length >= 6) {
@@ -638,6 +658,9 @@ router.post('/update-profile', async (req, res) => {
       name: user.name,
       regNo: user.regNo,
       email: user.email,
+      phone: user.phone,
+      gender: user.gender,
+      year: user.year,
       department: user.department || user.faculty,
       faculty: user.faculty || user.department,
       age: user.age,
@@ -647,9 +670,152 @@ router.post('/update-profile', async (req, res) => {
       injuryHistory: user.injuryHistory,
       trainingGoal: user.trainingGoal,
       bio: user.bio,
-      avatarUrl: user.avatarUrl
+      avatarUrl: user.avatarUrl || user.profilePhoto || '',
+      profilePhoto: user.profilePhoto || user.avatarUrl || '',
+      profileImage: user.profileImage || user.avatarUrl || ''
     }
   });
+});
+
+/**
+ * @route   POST /api/student/upload-photo
+ * @desc    Upload student profile image to server storage & sync to database
+ */
+router.post('/upload-photo', (req, res) => {
+  try {
+    const myIds = getStudentIdentifiers(req.user);
+    const user = (db.users || []).find(u => {
+      const uIds = [u.id, u.user_id, u.userId, u.regNo, u.username, u.email].filter(Boolean).map(s => String(s).toLowerCase().trim());
+      return myIds.some(id => uIds.includes(id));
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Student user account not found.' });
+    }
+
+    const { image, base64Image, profilePhoto, avatarUrl } = req.body;
+    const rawImage = image || base64Image || profilePhoto || avatarUrl;
+
+    if (!rawImage || typeof rawImage !== 'string') {
+      return res.status(400).json({ success: false, error: 'Valid image data (base64 or URL) is required.' });
+    }
+
+    const avatarsDir = path.join(config.UPLOAD_DIR || path.join(__dirname, '../uploads'), 'avatars');
+    if (!fs.existsSync(avatarsDir)) {
+      fs.mkdirSync(avatarsDir, { recursive: true });
+    }
+
+    // Automatically delete old profile image file from storage if it exists
+    const oldImage = user.profileImage || user.profilePhoto || user.avatarUrl || '';
+    if (oldImage && oldImage.startsWith('/uploads/avatars/')) {
+      const oldFilename = path.basename(oldImage);
+      const oldFilePath = path.join(avatarsDir, oldFilename);
+      try {
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      } catch (err) {
+        console.warn(`[Storage] Could not delete old photo file:`, err.message);
+      }
+    }
+
+    let savedImageUrl = '';
+    const base64Match = rawImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+
+    if (base64Match) {
+      const rawExt = base64Match[1].toLowerCase();
+      const ext = rawExt === 'jpeg' ? 'jpg' : (rawExt === 'svg+xml' ? 'svg' : rawExt);
+      const buffer = Buffer.from(base64Match[2], 'base64');
+      const filename = `student_${user.user_id || user.regNo || user.id || 'student'}_${Date.now()}.${ext}`;
+      const filePath = path.join(avatarsDir, filename);
+
+      fs.writeFileSync(filePath, buffer);
+      savedImageUrl = `/uploads/avatars/${filename}`;
+    } else {
+      savedImageUrl = rawImage;
+    }
+
+    // Update database record
+    user.profileImage = savedImageUrl;
+    user.profilePhoto = savedImageUrl;
+    user.avatarUrl = savedImageUrl;
+    user.updatedAt = new Date().toISOString();
+
+    saveDatabase();
+
+    res.json({
+      success: true,
+      message: 'Profile photo updated and saved to database successfully.',
+      profileImage: savedImageUrl,
+      profilePhoto: savedImageUrl,
+      avatarUrl: savedImageUrl,
+      user: {
+        id: user.id,
+        user_id: user.user_id || user.userId || '',
+        name: user.name,
+        email: user.email,
+        profileImage: savedImageUrl,
+        profilePhoto: savedImageUrl,
+        avatarUrl: savedImageUrl
+      }
+    });
+  } catch (err) {
+    console.error('Error updating student profile photo:', err);
+    res.status(500).json({ success: false, error: 'Failed to save profile photo in database: ' + err.message });
+  }
+});
+
+/**
+ * @route   DELETE /api/student/delete-photo
+ * @desc    Remove student profile photo from database and delete storage file
+ */
+router.delete('/delete-photo', (req, res) => {
+  try {
+    const myIds = getStudentIdentifiers(req.user);
+    const user = (db.users || []).find(u => {
+      const uIds = [u.id, u.user_id, u.userId, u.regNo, u.username, u.email].filter(Boolean).map(s => String(s).toLowerCase().trim());
+      return myIds.some(id => uIds.includes(id));
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Student user account not found.' });
+    }
+
+    const avatarsDir = path.join(config.UPLOAD_DIR || path.join(__dirname, '../uploads'), 'avatars');
+    const oldImage = user.profileImage || user.profilePhoto || user.avatarUrl || '';
+    if (oldImage && oldImage.startsWith('/uploads/avatars/')) {
+      const oldFilename = path.basename(oldImage);
+      const oldFilePath = path.join(avatarsDir, oldFilename);
+      try {
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      } catch (err) {}
+    }
+
+    user.profileImage = '';
+    user.profilePhoto = '';
+    user.avatarUrl = '';
+    user.updatedAt = new Date().toISOString();
+
+    saveDatabase();
+
+    res.json({
+      success: true,
+      message: 'Profile photo removed from database.',
+      user: {
+        id: user.id,
+        user_id: user.user_id || user.userId || '',
+        name: user.name,
+        profileImage: '',
+        profilePhoto: '',
+        avatarUrl: ''
+      }
+    });
+  } catch (err) {
+    console.error('Error deleting student photo:', err);
+    res.status(500).json({ success: false, error: 'Failed to remove photo.' });
+  }
 });
 
 /**
