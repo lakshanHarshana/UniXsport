@@ -261,8 +261,9 @@ function showPage(pageId) {
             loadProfileIntoForm();
         } else if (cleanId === 'borrow-history' && typeof loadBorrowHistory === 'function') {
             loadBorrowHistory();
-        } else if (cleanId === 'request-schedule' && typeof loadProfileFromStorage === 'function') {
-            loadProfileFromStorage();
+        } else if (cleanId === 'request-schedule') {
+            if (typeof loadProfileFromStorage === 'function') loadProfileFromStorage();
+            if (typeof loadCoachesDropdown === 'function') loadCoachesDropdown();
         } else if (cleanId === 'my-training') {
             if (typeof initMySchedule === 'function') initMySchedule();
         } else if (cleanId === 'notices' && typeof fetchStudentNotices === 'function') {
@@ -1146,7 +1147,10 @@ async function loadCoachesDropdown() {
                 const option = document.createElement('option');
                 const coachTitle = `Coach ${c.name}`;
                 option.value = coachTitle;
-                option.textContent = `${coachTitle} (${c.department || 'Sports'})`;
+                option.setAttribute('data-coach-id', c.id || c.user_id || c.userId || '');
+                option.setAttribute('data-coach-name', c.name || '');
+                option.setAttribute('data-coach-email', c.email || '');
+                option.textContent = `${coachTitle} (${c.department || 'Sports Directorate'})`;
                 select.appendChild(option);
             });
         }
@@ -1191,7 +1195,11 @@ function initRequestScheduleForm() {
 
         const dateVal = form.querySelector('[name="preferredDate"]').value;
         const timeVal = form.querySelector('[name="timeSlot"]').value;
-        const coachVal = form.querySelector('[name="coach"]').value;
+        const coachSelect = form.querySelector('[name="coach"]');
+        const coachVal = coachSelect ? coachSelect.value : '';
+        const selectedOption = coachSelect ? coachSelect.options[coachSelect.selectedIndex] : null;
+        const coachId = selectedOption?.getAttribute('data-coach-id') || '';
+        const coachName = selectedOption?.getAttribute('data-coach-name') || coachVal;
         const notesVal = (form.querySelector('[name="notes"]')?.value || '').trim();
 
         const payload = {
@@ -1199,8 +1207,10 @@ function initRequestScheduleForm() {
             preferredDate: dateVal,
             timeSlot: timeVal,
             preferredTime: timeVal,
-            coachId: coachVal,
+            coachId: coachId || coachVal,
             coach: coachVal,
+            coachName: coachName,
+            targetCoachId: coachId,
             preferredCoach: coachVal,
             notes: notesVal,
             age: profile.age || '',

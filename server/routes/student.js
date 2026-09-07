@@ -233,6 +233,8 @@ router.post('/schedule-request', (req, res) => {
     timeSlot,
     coachId,
     coach,
+    coachName,
+    targetCoachId,
     preferredCoach,
     notes,
     age,
@@ -245,7 +247,7 @@ router.post('/schedule-request', (req, res) => {
 
   const targetDate = (requestedDate || preferredDate || '').trim();
   const targetTime = (timeSlot || '').trim();
-  const targetCoach = (preferredCoach || coach || coachId || 'Coach Mike').trim();
+  const targetCoachStr = (preferredCoach || coach || coachId || 'Any Coach').trim();
 
   if (!targetDate || !targetTime) {
     return res.status(400).json({ success: false, error: 'Preferred Date and Time Slot are required.' });
@@ -265,6 +267,28 @@ router.post('/schedule-request', (req, res) => {
     });
   }
 
+  // Identify specific coach user if selected
+  const isAnyCoach = targetCoachStr.toLowerCase() === 'any coach' || targetCoachStr.toLowerCase() === 'any';
+  let matchedCoach = null;
+  if (!isAnyCoach) {
+    matchedCoach = (db.users || []).find(u => {
+      if (u.role !== 'coach') return false;
+      const uIds = [u.id, u.user_id, u.userId, u.regNo, u.email].filter(Boolean).map(s => String(s).toLowerCase().trim());
+      if (coachId && uIds.includes(String(coachId).toLowerCase().trim())) return true;
+      if (targetCoachId && uIds.includes(String(targetCoachId).toLowerCase().trim())) return true;
+      if (coachName && u.name && u.name.toLowerCase().trim() === coachName.toLowerCase().trim()) return true;
+      
+      const cleanTarget = targetCoachStr.toLowerCase().replace(/^coach\s+/i, '').trim();
+      const cleanName = (u.name || '').toLowerCase().replace(/^coach\s+/i, '').trim();
+      if (cleanName && (cleanTarget === cleanName || (u.name && u.name.toLowerCase() === targetCoachStr.toLowerCase()))) return true;
+      if (uIds.includes(targetCoachStr.toLowerCase())) return true;
+      return false;
+    });
+  }
+
+  const finalCoachId = matchedCoach ? (matchedCoach.id || matchedCoach.user_id || matchedCoach.userId) : (coachId || (isAnyCoach ? 'Any Coach' : targetCoachStr));
+  const finalCoachName = matchedCoach ? matchedCoach.name : (coachName || targetCoachStr);
+
   const newRequest = {
     id: 'req_' + Date.now(),
     userId: studentUser.user_id || studentUser.userId || req.user.user_id || 'US002',
@@ -279,8 +303,10 @@ router.post('/schedule-request', (req, res) => {
     fitnessLevel: studentUser.fitnessLevel || fitnessLevel || 'Intermediate',
     injuryHistory: studentUser.injuryHistory || injuryHistory || 'None',
     trainingGoal: studentUser.trainingGoal || trainingGoal || 'General Fitness',
-    coachId: targetCoach,
-    preferredCoach: targetCoach,
+    coachId: finalCoachId,
+    coachName: finalCoachName,
+    preferredCoach: isAnyCoach ? 'Any Coach' : targetCoachStr,
+    targetCoachId: matchedCoach ? (matchedCoach.id || matchedCoach.user_id || matchedCoach.userId) : (targetCoachId || ''),
     requestedDate: targetDate,
     date: targetDate,
     preferredDate: targetDate,
@@ -302,7 +328,8 @@ router.post('/schedule-request', (req, res) => {
       title: 'New Gym Schedule Request',
       message: `${newRequest.studentName} submitted a gym schedule request for ${newRequest.requestedDate} (${newRequest.timeSlot})`,
       priority: 'normal',
-      visibleTo: 'coaches',
+      visibleTo: matchedCoach ? (matchedCoach.user_id || matchedCoach.userId || matchedCoach.id || 'coaches') : 'coaches',
+      targetCoachId: matchedCoach ? (matchedCoach.user_id || matchedCoach.userId || matchedCoach.id) : null,
       createdBy: 'System',
       createdAt: new Date().toISOString()
   };

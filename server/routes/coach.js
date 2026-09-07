@@ -33,14 +33,79 @@ router.use(authenticateToken);
 router.use(authorizeRoles('coach', 'admin'));
 
 /**
+ * Helper to check if a schedule request is assigned to or handled by the logged-in coach
+ */
+function matchesCoachRequest(request, coachUser) {
+  if (!request) return false;
+  if (!coachUser) return false;
+  if (coachUser.role === 'admin') return true;
+
+  const coachIdentifiers = [
+    coachUser.id,
+    coachUser.user_id,
+    coachUser.userId,
+    coachUser.regNo,
+    coachUser.username,
+    coachUser.email
+  ].filter(Boolean).map(s => String(s).toLowerCase().trim());
+
+  const coachName = (coachUser.name || '').toLowerCase().trim();
+  const cleanCoachName = coachName.replace(/^coach\s+/i, '').trim();
+
+  const prefCoach = (request.preferredCoach || request.coach || '').toLowerCase().trim();
+  const cleanPref = prefCoach.replace(/^coach\s+/i, '').trim();
+  const reqCoachId = String(request.coachId || '').toLowerCase().trim();
+  const reqTargetId = String(request.targetCoachId || '').toLowerCase().trim();
+  const reqCoachName = String(request.coachName || '').toLowerCase().trim();
+  const cleanReqCoachName = reqCoachName.replace(/^coach\s+/i, '').trim();
+
+  // 1. Unassigned / "Any Coach" requests are open to all coaches
+  if (prefCoach === 'any coach' || prefCoach === 'any' || !prefCoach) {
+    return true;
+  }
+
+  // 2. Direct ID match
+  if (coachIdentifiers.some(id => id && (id === reqCoachId || id === reqTargetId))) {
+    return true;
+  }
+
+  // 3. Name match
+  if (coachName) {
+    if (reqCoachName && (reqCoachName === coachName || cleanReqCoachName === cleanCoachName)) {
+      return true;
+    }
+    if (prefCoach && (prefCoach === coachName || cleanPref === cleanCoachName || prefCoach.includes(cleanCoachName) || coachName.includes(cleanPref))) {
+      return true;
+    }
+  }
+
+  // 4. If request was previously approved or rejected by this coach
+  if (request.approvedBy) {
+    const approvedByStr = String(request.approvedBy).toLowerCase().trim();
+    if (coachIdentifiers.includes(approvedByStr) || (coachName && approvedByStr === coachName)) {
+      return true;
+    }
+  }
+  if (request.rejectedBy) {
+    const rejectedByStr = String(request.rejectedBy).toLowerCase().trim();
+    if (coachIdentifiers.includes(rejectedByStr) || (coachName && rejectedByStr === coachName)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * @route   GET /api/coach/dashboard
  * @desc    Get coach overview statistics and pending schedule requests
  */
 router.get('/dashboard', (req, res) => {
   if (!db.gymRequests) db.gymRequests = [];
-  const pendingRequests = db.gymRequests.filter(r => r.status === 'pending');
+  const myRequests = db.gymRequests.filter(r => matchesCoachRequest(r, req.user));
+  const pendingRequests = myRequests.filter(r => r.status === 'pending');
   const todayStr = new Date().toISOString().split('T')[0];
-  const approvedToday = db.gymRequests.filter(
+  const approvedToday = myRequests.filter(
     r => r.status === 'approved' && (
       (r.approvedAt && r.approvedAt.startsWith(todayStr)) ||
       (r.updatedAt && r.updatedAt.startsWith(todayStr)) ||
@@ -53,7 +118,7 @@ router.get('/dashboard', (req, res) => {
 
   const todayZero = new Date();
   todayZero.setHours(0, 0, 0, 0);
-  const upcomingSessions = db.gymRequests.filter(
+  const upcomingSessions = myRequests.filter(
     r => r.status === 'approved' && new Date(r.requestedDate || r.date || r.preferredDate || 0) >= todayZero
   );
 
@@ -67,7 +132,7 @@ router.get('/dashboard', (req, res) => {
       maxSlotCapacity: config.MAX_SLOT_CAPACITY || 30
     },
     pendingRequests,
-    allRequests: db.gymRequests
+    allRequests: myRequests
   });
 });
 
@@ -77,9 +142,10 @@ router.get('/dashboard', (req, res) => {
  */
 router.get('/requests', (req, res) => {
   if (!db.gymRequests) db.gymRequests = [];
+  const myRequests = db.gymRequests.filter(r => matchesCoachRequest(r, req.user));
   res.json({
     success: true,
-    requests: db.gymRequests
+    requests: myRequests
   });
 });
 
@@ -134,6 +200,10 @@ router.post('/approve-request', (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Gym schedule request not found.' });
     }
 
+    if (req.user.role !== 'admin' && !matchesCoachRequest(request, req.user)) {
+      return res.status(403).json({ success: false, error: 'You are not authorized to approve requests assigned to another coach.' });
+    }
+
     if (request.status !== 'pending') {
         return res.status(400).json({ success: false, error: `Cannot process: request is already ${request.status}.` });
     }
@@ -159,6 +229,8 @@ router.post('/approve-request', (req, res, next) => {
     request.coachNotes = finalNotes;
     request.coachComment = finalNotes;
     request.approvedBy = req.user ? req.user.name : 'Coach';
+    request.coachName = req.user ? req.user.name : (request.coachName || 'Coach');
+    request.coachId = req.user ? (req.user.user_id || req.user.id || req.user.regNo) : request.coachId;
     request.approvedAt = new Date().toISOString();
 
     if (req.file) {
@@ -251,6 +323,10 @@ router.post('/reject-request', (req, res) => {
   const request = db.gymRequests.find(r => String(r.id) === String(requestId));
   if (!request) {
     return res.status(404).json({ success: false, error: 'Gym schedule request not found.' });
+  }
+
+  if (req.user.role !== 'admin' && !matchesCoachRequest(request, req.user)) {
+    return res.status(403).json({ success: false, error: 'You are not authorized to reject requests assigned to another coach.' });
   }
 
   if (request.status !== 'pending') {

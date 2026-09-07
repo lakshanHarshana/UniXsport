@@ -114,7 +114,7 @@
       "profileImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       "profilePhoto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       "createdAt": "2026-09-07T19:31:23.872Z",
-      "updatedAt": "2026-09-07T19:31:23.951Z"
+      "updatedAt": "2026-09-07T19:38:41.492Z"
     }
   ],
   "equipment": [
@@ -139,7 +139,56 @@
   "borrowLogs": [],
   "gymRequests": [],
   "workoutPlans": [],
-  "notices": [],
+  "notices": [
+    {
+      "id": "not_1788812676551",
+      "title": "New Gym Schedule Request",
+      "message": "Sunil Silva submitted a gym schedule request for 2026-10-15 (08:00-10:00)",
+      "priority": "normal",
+      "visibleTo": "US_CK1",
+      "targetCoachId": "US_CK1",
+      "createdBy": "System",
+      "createdAt": "2026-09-07T20:24:36.551Z"
+    },
+    {
+      "id": "not_1788812676560",
+      "title": "Gym Schedule Request Approved",
+      "message": "Your gym schedule request for 2026-10-15 has been approved by Kamal Perera",
+      "priority": "high",
+      "visibleTo": "specific_user",
+      "targetUserId": "ITT/2023/888",
+      "targetStudentId": "ITT/2023/888",
+      "targetUserName": "Sunil Silva",
+      "createdBy": "Kamal Perera",
+      "creatorRole": "coach",
+      "creatorId": "usr_coach_kamal",
+      "createdAt": "2026-09-07T20:24:36.560Z"
+    },
+    {
+      "id": "not_1788812683601",
+      "title": "New Gym Schedule Request",
+      "message": "Sunil Silva submitted a gym schedule request for 2026-10-15 (08:00-10:00)",
+      "priority": "normal",
+      "visibleTo": "US_CK1",
+      "targetCoachId": "US_CK1",
+      "createdBy": "System",
+      "createdAt": "2026-09-07T20:24:43.601Z"
+    },
+    {
+      "id": "not_1788812683610",
+      "title": "Gym Schedule Request Approved",
+      "message": "Your gym schedule request for 2026-10-15 has been approved by Kamal Perera",
+      "priority": "high",
+      "visibleTo": "specific_user",
+      "targetUserId": "ITT/2023/888",
+      "targetStudentId": "ITT/2023/888",
+      "targetUserName": "Sunil Silva",
+      "createdBy": "Kamal Perera",
+      "creatorRole": "coach",
+      "creatorId": "usr_coach_kamal",
+      "createdAt": "2026-09-07T20:24:43.610Z"
+    }
+  ],
   "facilities": [
     {
       "id": "fac_01",
@@ -296,6 +345,18 @@
       "userId": "usr_1788809483872_gv42d",
       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA5NDgzODcyX2d2NDJkIiwidXNlcl9pZCI6IlVTMDA0IiwidXNlcklkIjoiVVMwMDQiLCJyZWdObyI6IjIwMjIvSUNULzk5IiwibmFtZSI6IkRldlN5bmMgU3R1ZGVudCBVcGRhdGVkIiwiZW1haWwiOiJkZXZzeW5jLnN0dWRlbnRAcmp0LmFjLmxrIiwicm9sZSI6InN0dWRlbnQiLCJkZXBhcnRtZW50IjoiVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDk0ODQsImV4cCI6MTc4ODg5NTg4NH0.x_8HS4pPzqKZPNyCO4kiOKAeqen7uI9_BzkG2CbmrIs",
       "loggedInAt": "2026-09-07T19:31:24.014Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_1788809483872_gv42d",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA5NDgzODcyX2d2NDJkIiwidXNlcl9pZCI6IlVTMDA0IiwidXNlcklkIjoiVVMwMDQiLCJyZWdObyI6IjIwMjIvSUNULzk5IiwibmFtZSI6IkRldlN5bmMgU3R1ZGVudCBVcGRhdGVkIiwiZW1haWwiOiJkZXZzeW5jLnN0dWRlbnRAcmp0LmFjLmxrIiwicm9sZSI6InN0dWRlbnQiLCJkZXBhcnRtZW50IjoiVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDk5MjEsImV4cCI6MTc4ODg5NjMyMX0.yAo9_Jfak98vxeiz-quBoAarrgq7XNR607CiqXEomPw",
+      "loggedInAt": "2026-09-07T19:38:41.486Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_1788809483872_gv42d",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA5NDgzODcyX2d2NDJkIiwidXNlcl9pZCI6IlVTMDA0IiwidXNlcklkIjoiVVMwMDQiLCJyZWdObyI6IjIwMjIvSUNULzk5IiwibmFtZSI6IkRldlN5bmMgU3R1ZGVudCBVcGRhdGVkIiwiZW1haWwiOiJkZXZzeW5jLnN0dWRlbnRAcmp0LmFjLmxrIiwicm9sZSI6InN0dWRlbnQiLCJkZXBhcnRtZW50IjoiVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDk5MjEsImV4cCI6MTc4ODg5NjMyMX0.yAo9_Jfak98vxeiz-quBoAarrgq7XNR607CiqXEomPw",
+      "loggedInAt": "2026-09-07T19:38:41.562Z",
       "revoked": false
     }
   ],

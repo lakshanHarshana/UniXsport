@@ -36,15 +36,20 @@ let studentRequests = [];
 let approvedSchedules = [];
 
 let currentCoach = (() => {
-    let raw = sessionStorage.getItem('unixsport_user_coach') || localStorage.getItem('unixsport_user_coach');
+    let raw = sessionStorage.getItem('unixsport_user_coach') ||
+              localStorage.getItem('unixsport_user_coach') ||
+              sessionStorage.getItem('unixsport_user') ||
+              localStorage.getItem('unixsport_user');
     let parsed = null;
     if (raw) {
         try { parsed = JSON.parse(raw); } catch(e) {}
     }
     return {
-        id: parsed?.id || 1,
+        id: parsed?.id || parsed?.user_id || parsed?.userId || '',
+        user_id: parsed?.user_id || parsed?.userId || parsed?.id || '',
         name: parsed?.name || sessionStorage.getItem('userRealName') || localStorage.getItem('userRealName') || (sessionStorage.getItem('userName') || localStorage.getItem('userName') ? ((sessionStorage.getItem('userName') || localStorage.getItem('userName')).charAt(0).toUpperCase() + (sessionStorage.getItem('userName') || localStorage.getItem('userName')).slice(1)) : 'Coach Mike'),
-        email: parsed?.email || sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || 'coach@unixsport.edu'
+        email: parsed?.email || sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || 'coach@unixsport.edu',
+        role: parsed?.role || sessionStorage.getItem('userRole') || localStorage.getItem('userRole') || 'coach'
     };
 })();
 
@@ -92,8 +97,42 @@ let notices = [];
 
 // Filter requests for current coach or open requests
 function filterByCurrentCoach(requests) {
-    if (!requests || requests.length === 0) return [];
-    return requests;
+    if (!requests || !Array.isArray(requests)) return [];
+    if (currentCoach.role === 'admin') return requests;
+
+    const coachName = (currentCoach.name || '').toLowerCase().trim();
+    const cleanCoachName = coachName.replace(/^coach\s+/i, '').trim();
+    const coachIds = [currentCoach.id, currentCoach.user_id, currentCoach.email].filter(Boolean).map(s => String(s).toLowerCase().trim());
+
+    return requests.filter(r => {
+        if (!r) return false;
+        const prefCoach = (r.preferredCoach || r.coach || '').toLowerCase().trim();
+        const cleanPref = prefCoach.replace(/^coach\s+/i, '').trim();
+        const rCoachId = String(r.coachId || '').toLowerCase().trim();
+        const rTargetId = String(r.targetCoachId || '').toLowerCase().trim();
+        const rCoachName = String(r.coachName || '').toLowerCase().trim();
+        const cleanRCoachName = rCoachName.replace(/^coach\s+/i, '').trim();
+
+        // 1. Any coach / open request
+        if (prefCoach === 'any coach' || prefCoach === 'any' || !prefCoach) return true;
+
+        // 2. Direct ID match
+        if (coachIds.length > 0 && (coachIds.includes(rCoachId) || coachIds.includes(rTargetId))) return true;
+
+        // 3. Name match
+        if (coachName) {
+            if (rCoachName && (rCoachName === coachName || cleanRCoachName === cleanCoachName)) return true;
+            if (prefCoach && (prefCoach === coachName || cleanPref === cleanCoachName || prefCoach.includes(cleanCoachName) || coachName.includes(cleanPref))) return true;
+        }
+
+        // 4. Approved/rejected by this coach
+        if (r.approvedBy) {
+            const approvedByStr = String(r.approvedBy).toLowerCase().trim();
+            if (coachIds.includes(approvedByStr) || (coachName && approvedByStr === coachName)) return true;
+        }
+
+        return false;
+    });
 }
 
 // ========== Live Database Sync ==========
@@ -140,7 +179,7 @@ async function loadRequestsDatabase() {
             }
         }
 
-        studentRequests = allReqs.map(r => ({
+        const mappedReqs = allReqs.map(r => ({
             id: r.id,
             userId: r.userId || r.user_id || 'US002',
             studentId: r.studentRegNo || r.studentId || r.userId || 'STU001',
@@ -160,6 +199,8 @@ async function loadRequestsDatabase() {
             preferredTime: r.timeSlot || r.preferredTime,
             preferredCoach: r.preferredCoach || r.coachId || 'Coach Mike',
             coachId: r.coachId || r.preferredCoach || 'Coach Mike',
+            coachName: r.coachName || '',
+            targetCoachId: r.targetCoachId || '',
             notes: r.notes || '',
             reason: r.reason || '',
             status: r.status || 'pending',
@@ -171,13 +212,15 @@ async function loadRequestsDatabase() {
             assignedExercises: r.assignedExercises || []
         }));
 
+        studentRequests = filterByCurrentCoach(mappedReqs);
+
         approvedSchedules = studentRequests.filter(r => r.status === 'approved').map(r => ({
             id: r.id,
             requestId: r.id,
             studentId: r.studentId,
             studentName: r.studentName,
             studentRegNo: r.studentRegNo,
-            coachId: currentCoach.id,
+            coachId: currentCoach.id || currentCoach.user_id || 'Coach',
             coachName: currentCoach.name,
             date: r.requestedDate,
             timeSlot: r.timeSlot,
