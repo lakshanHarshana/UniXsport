@@ -74,27 +74,40 @@ async function fetchStudentAPI(endpoint, options = {}) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    loadProfileFromStorage();
-    initNavigation();
-    initSidebar();
-    initNotifications();
-    initDarkMode();
-    initEditProfileForm();
-    initRequestScheduleForm();
-    initRequestEquipmentForm();
-    initEquipmentSearch();
-    initBorrowSearch();
-    initTrainingGoalToggle();
-    initProfilePhoto();
-    initModal();
-    initDeleteScheduleModal();
-    initTrainingTabs();
-    initDynamicWorkoutPlan();
-    await initMySchedule();
-    loadEquipmentAvailability();
-    loadBorrowHistory();
-    updateStudentDashboardStats();
-    initStudentAutoRefresh();
+    const safeExec = (fn, name) => {
+        try {
+            if (typeof fn === 'function') fn();
+        } catch (e) {
+            console.warn(`[UniXsport] Init warning in ${name}:`, e);
+        }
+    };
+
+    // 1. Essential Core UI & Navigation first
+    safeExec(initNavigation, 'initNavigation');
+    safeExec(initSidebar, 'initSidebar');
+    safeExec(initNotifications, 'initNotifications');
+    safeExec(initDarkMode, 'initDarkMode');
+
+    // 2. Forms & Modals
+    safeExec(initEditProfileForm, 'initEditProfileForm');
+    safeExec(initRequestScheduleForm, 'initRequestScheduleForm');
+    safeExec(initRequestEquipmentForm, 'initRequestEquipmentForm');
+    safeExec(initEquipmentSearch, 'initEquipmentSearch');
+    safeExec(initBorrowSearch, 'initBorrowSearch');
+    safeExec(initTrainingGoalToggle, 'initTrainingGoalToggle');
+    safeExec(initProfilePhoto, 'initProfilePhoto');
+    safeExec(initModal, 'initModal');
+    safeExec(initDeleteScheduleModal, 'initDeleteScheduleModal');
+    safeExec(initTrainingTabs, 'initTrainingTabs');
+
+    // 3. Dynamic Data & Profile
+    safeExec(loadProfileFromStorage, 'loadProfileFromStorage');
+    safeExec(initDynamicWorkoutPlan, 'initDynamicWorkoutPlan');
+    try { await initMySchedule(); } catch(e) { console.warn(e); }
+    safeExec(loadEquipmentAvailability, 'loadEquipmentAvailability');
+    safeExec(loadBorrowHistory, 'loadBorrowHistory');
+    safeExec(updateStudentDashboardStats, 'updateStudentDashboardStats');
+    safeExec(initStudentAutoRefresh, 'initStudentAutoRefresh');
 });
 
 // ========== Automatic Live Data Refresh ==========
@@ -205,43 +218,97 @@ function initWorkoutTracker() {
 }
 
 // ========== Navigation ==========
-function initNavigation() {
-    const navLinks = document.querySelectorAll('.nav-link');
+function showPage(pageId) {
+    if (!pageId) return;
+    const cleanId = String(pageId).replace(/^page-/, '').trim();
     const pages = document.querySelectorAll('.page');
+    const navLinks = document.querySelectorAll('.nav-link');
 
-    function showPage(pageId) {
-        pages.forEach(page => {
-            page.classList.toggle('active', page.id === `page-${pageId}`);
-        });
-        navLinks.forEach(link => {
-            link.classList.toggle('active', link.dataset.page === pageId);
-        });
-        if (typeof window.closeSidebar === 'function') window.closeSidebar();
+    let matched = false;
+    pages.forEach(page => {
+        const isMatch = page.id === `page-${cleanId}` || page.id === cleanId;
+        page.classList.toggle('active', isMatch);
+        if (isMatch) matched = true;
+    });
+
+    // If matching page found, update nav links
+    navLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.page === cleanId);
+    });
+
+    // Close mobile sidebar if open
+    if (typeof window.closeSidebar === 'function') {
+        window.closeSidebar();
     }
 
-    // Delegated handler for all links/buttons with data-page
+    // Scroll smoothly to top of main content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Page-specific data loaders safely executed
+    try {
+        if (cleanId === 'profile' && typeof loadProfileFromStorage === 'function') {
+            loadProfileFromStorage();
+        } else if (cleanId === 'edit-profile' && typeof loadProfileIntoForm === 'function') {
+            loadProfileIntoForm();
+        } else if (cleanId === 'borrow-history' && typeof loadBorrowHistory === 'function') {
+            loadBorrowHistory();
+        } else if (cleanId === 'request-schedule' && typeof loadProfileFromStorage === 'function') {
+            loadProfileFromStorage();
+        } else if (cleanId === 'my-training') {
+            if (typeof initMySchedule === 'function') initMySchedule();
+        } else if (cleanId === 'notices' && typeof fetchStudentNotices === 'function') {
+            fetchStudentNotices();
+        }
+    } catch (err) {
+        console.warn('[Navigation] Page loader note:', err);
+    }
+}
+
+function initNavigation() {
+    // 1. Direct click listeners on all navigation links
+    document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showPage(link.dataset.page);
+        });
+    });
+
+    // 2. Direct click listeners on all dashboard cards & shortcut buttons
+    document.querySelectorAll('[data-page]:not(.nav-link)').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            showPage(el.dataset.page);
+            if (el.dataset.tab && typeof switchTrainingTab === 'function') {
+                switchTrainingTab(el.dataset.tab);
+            }
+        });
+    });
+
+    // 3. Document-level delegated click handler for guaranteed responsiveness
     document.addEventListener('click', (e) => {
+        const logoutTrigger = e.target.closest('#sidebarLogout, #logoutBtn, .logout-link');
+        if (logoutTrigger) {
+            e.preventDefault();
+            handleStudentLogout(e);
+            return;
+        }
+
         const trigger = e.target.closest('[data-page]');
         if (trigger) {
             e.preventDefault();
             showPage(trigger.dataset.page);
-            if (trigger.dataset.page === 'profile') {
-                if (typeof loadProfileFromStorage === 'function') loadProfileFromStorage();
-            }
-            if (trigger.dataset.page === 'edit-profile') loadProfileIntoForm();
-            if (trigger.dataset.page === 'borrow-history') loadBorrowHistory();
-            if (trigger.dataset.page === 'request-schedule') {
-                if (typeof loadProfileFromStorage === 'function') loadProfileFromStorage();
-            }
-            if (trigger.dataset.page === 'my-training') {
-                initMySchedule();
-                if (trigger.dataset.tab) switchTrainingTab(trigger.dataset.tab);
-            }
-            if (trigger.dataset.page === 'notices') {
-                fetchStudentNotices();
+            if (trigger.dataset.tab && typeof switchTrainingTab === 'function') {
+                switchTrainingTab(trigger.dataset.tab);
             }
         }
     });
+
+    // 4. Initial URL Hash check (e.g., student.html#profile)
+    const initialHash = window.location.hash ? window.location.hash.replace('#', '').trim() : '';
+    if (initialHash && document.getElementById(`page-${initialHash}`)) {
+        showPage(initialHash);
+    }
 
     window.showPage = showPage;
 }
@@ -288,10 +355,18 @@ function initSidebar() {
         document.body.style.overflow = '';
     }
 
-    toggle?.addEventListener('click', openSidebar);
-    overlay?.addEventListener('click', closeSidebar);
+    toggle?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openSidebar();
+    });
+    overlay?.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeSidebar();
+    });
 
     window.closeSidebar = closeSidebar;
+    window.openSidebar = openSidebar;
 }
 
 // ========== Student Broadcast Notifications ==========
