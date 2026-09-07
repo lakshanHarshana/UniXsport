@@ -211,6 +211,66 @@
   "borrowLogs": [],
   "gymRequests": [
     {
+      "id": "req_1788816958242",
+      "userId": "US002",
+      "studentId": "ITT/2023/099",
+      "studentRegNo": "ITT/2023/099",
+      "studentName": "Kasun Bandara",
+      "studentEmail": "kasun.b@rjt.ac.lk",
+      "department": "Faculty of Technology",
+      "age": "",
+      "height": "",
+      "weight": "",
+      "fitnessLevel": "Not Set",
+      "injuryHistory": "None",
+      "trainingGoal": "General Fitness",
+      "coachId": "US006",
+      "coachName": "Sarah",
+      "preferredCoach": "Coach Sarah",
+      "targetCoachId": "usr_coach2",
+      "requestedDate": "2026-09-15",
+      "date": "2026-09-15",
+      "preferredDate": "2026-09-15",
+      "timeSlot": "08:00-10:00",
+      "preferredTime": "08:00-10:00",
+      "notes": "Focus on bench press and squats",
+      "status": "approved",
+      "coachNotes": "Great goal! Make sure to warmup properly and keep high intensity.",
+      "coachComment": "Great goal! Make sure to warmup properly and keep high intensity.",
+      "pdfScheduleUrl": "",
+      "assignedExercises": [
+        {
+          "name": "Barbell Bench Press",
+          "sets": "4",
+          "reps": "8-10",
+          "setsReps": "4 sets x 8-10 reps",
+          "completed": true,
+          "progressDate": "2026-09-07"
+        },
+        {
+          "name": "Incline Dumbbell Press",
+          "sets": "3",
+          "reps": "10-12",
+          "setsReps": "3 sets x 10-12 reps"
+        },
+        {
+          "name": "Cable Flyes",
+          "sets": "3",
+          "reps": "15",
+          "setsReps": "3 sets x 15 reps"
+        },
+        {
+          "name": "Tricep Pushdowns",
+          "sets": "4",
+          "reps": "12",
+          "setsReps": "4 sets x 12 reps"
+        }
+      ],
+      "createdAt": "2026-09-07T21:35:58.242Z",
+      "approvedBy": "Sarah",
+      "approvedAt": "2026-09-07T21:35:58.372Z"
+    },
+    {
       "id": "req_1788815897947",
       "userId": "US002",
       "studentId": "ITT/2023/099",
@@ -305,7 +365,7 @@
         }
       ],
       "coachNotes": "Great goal! Make sure to warmup properly and keep high intensity.",
-      "updatedAt": "2026-09-07T21:18:18.094Z"
+      "updatedAt": "2026-09-07T21:35:58.381Z"
     }
   ],
   "notices": [
@@ -400,6 +460,30 @@
       "creatorRole": "coach",
       "creatorId": "usr_coach2",
       "createdAt": "2026-09-07T21:18:18.087Z"
+    },
+    {
+      "id": "not_1788816958242",
+      "title": "New Gym Schedule Request",
+      "message": "Kasun Bandara submitted a gym schedule request for 2026-09-15 (08:00-10:00)",
+      "priority": "normal",
+      "visibleTo": "US006",
+      "targetCoachId": "US006",
+      "createdBy": "System",
+      "createdAt": "2026-09-07T21:35:58.242Z"
+    },
+    {
+      "id": "not_1788816958372",
+      "title": "Gym Schedule Request Approved",
+      "message": "Your gym schedule request for 2026-09-15 has been approved by Sarah",
+      "priority": "high",
+      "visibleTo": "specific_user",
+      "targetUserId": "ITT/2023/099",
+      "targetStudentId": "ITT/2023/099",
+      "targetUserName": "Kasun Bandara",
+      "createdBy": "Sarah",
+      "creatorRole": "coach",
+      "creatorId": "usr_coach2",
+      "createdAt": "2026-09-07T21:35:58.372Z"
     }
   ],
   "facilities": [
@@ -588,6 +672,24 @@
       "userId": "usr_coach2",
       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl9jb2FjaDIiLCJ1c2VyX2lkIjoiVVMwMDYiLCJ1c2VySWQiOiJVUzAwNiIsInJlZ05vIjoiQ09BQ0gwMDIiLCJuYW1lIjoiU2FyYWgiLCJlbWFpbCI6InNhcmFoQGNvYWNoLmVkdSIsInJvbGUiOiJjb2FjaCIsImRlcGFydG1lbnQiOiJTdHJlbmd0aCAmIENvbmRpdGlvbmluZyIsInJmaWRUYWciOiJCMkMzRDRFNSIsImlhdCI6MTc4ODgxNTg5OCwiZXhwIjoxNzg4OTAyMjk4fQ.QwnJFtHg75E-ZIn2WLNDzPh4IbocVy0XYSPwo_Lhsa8",
       "loggedInAt": "2026-09-07T21:18:18.074Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_1788807308169_og9mc",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA3MzA4MTY5X29nOW1jIiwidXNlcl9pZCI6IlVTMDAyIiwidXNlcklkIjoiVVMwMDIiLCJyZWdObyI6IklUVC8yMDIzLzA5OSIsIm5hbWUiOiJLYXN1biBCYW5kYXJhIiwiZW1haWwiOiJrYXN1bi5iQHJqdC5hYy5sayIsInJvbGUiOiJzdHVkZW50IiwiZGVwYXJ0bWVudCI6IkZhY3VsdHkgb2YgVGVjaG5vbG9neSIsInJmaWRUYWciOiJBMUIyQzNENCIsImlhdCI6MTc4ODgxNjk1OCwiZXhwIjoxNzg4OTAzMzU4fQ.GyGmkYU5sna9teeR2n3WJrTx-elLftPeRkvNxU6wexk",
+      "loggedInAt": "2026-09-07T21:35:58.238Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_coach1",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl9jb2FjaDEiLCJ1c2VyX2lkIjoiVVMwMDUiLCJ1c2VySWQiOiJVUzAwNSIsInJlZ05vIjoiQ09BQ0gwMDEiLCJuYW1lIjoiTWlrZSIsImVtYWlsIjoibWlrZUBjb2FjaC5lZHUiLCJyb2xlIjoiY29hY2giLCJkZXBhcnRtZW50IjoiUGh5c2ljYWwgRWR1Y2F0aW9uIiwicmZpZFRhZyI6IkExQjJDM0Q0IiwiaWF0IjoxNzg4ODE2OTU4LCJleHAiOjE3ODg5MDMzNTh9.FUn3IgdUUozmDnpToBHJTunlEA0URduwTpCkfx1lcUw",
+      "loggedInAt": "2026-09-07T21:35:58.304Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_coach2",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl9jb2FjaDIiLCJ1c2VyX2lkIjoiVVMwMDYiLCJ1c2VySWQiOiJVUzAwNiIsInJlZ05vIjoiQ09BQ0gwMDIiLCJuYW1lIjoiU2FyYWgiLCJlbWFpbCI6InNhcmFoQGNvYWNoLmVkdSIsInJvbGUiOiJjb2FjaCIsImRlcGFydG1lbnQiOiJTdHJlbmd0aCAmIENvbmRpdGlvbmluZyIsInJmaWRUYWciOiJCMkMzRDRFNSIsImlhdCI6MTc4ODgxNjk1OCwiZXhwIjoxNzg4OTAzMzU4fQ.Yd8gKRQIEtSvhZRR2vdi0UUvE4GAy4YYAyAT8bai1xI",
+      "loggedInAt": "2026-09-07T21:35:58.368Z",
       "revoked": false
     }
   ],

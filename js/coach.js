@@ -95,6 +95,15 @@ async function fetchCoachAPI(endpoint, options = {}) {
 // ========== Data Storage (Connected 100% to Local Database) ==========
 let studentRequests = [];
 let approvedSchedules = [];
+let selectedExercises = [];
+let activeExerciseCategory = "Upper Body";
+let notices = [];
+let pendingListenersAttached = false;
+let calendarListenersAttached = false;
+let currentWeekStart = new Date();
+currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+let currentRequestId = null;
+let coachRefreshInterval = null;
 
 let currentCoach = (() => {
     let raw = sessionStorage.getItem('unixsport_user_coach') ||
@@ -150,11 +159,9 @@ const exerciseProgramCategories = {
     ]
 };
 
-let selectedExercises = [];
-let activeExerciseCategory = "Upper Body";
+
 
 // ========== Notices Database ==========
-let notices = [];
 
 // Filter requests for current coach or open requests
 function filterByCurrentCoach(requests) {
@@ -200,12 +207,24 @@ function filterByCurrentCoach(requests) {
 async function loadRequestsDatabase() {
     try {
         let allReqs = [];
-                            allReqs = parsed.allRequests || parsed.pendingRequests || [];
-                            break;
-                        }
-                    }
-                } catch (e) {}
+        try {
+            const data = await fetchCoachAPI('/api/coach/requests');
+            if (data && data.success && Array.isArray(data.requests)) {
+                allReqs = data.requests;
+            } else if (data && data.allRequests) {
+                allReqs = data.allRequests;
             }
+        } catch(apiErr) {
+            console.warn('Backend coach requests sync note:', apiErr);
+        }
+
+        if (!allReqs || allReqs.length === 0) {
+            try {
+                const dashData = await fetchCoachAPI('/api/coach/dashboard');
+                if (dashData && dashData.success && Array.isArray(dashData.allRequests)) {
+                    allReqs = dashData.allRequests;
+                }
+            } catch(dErr) {}
         }
 
         const mappedReqs = allReqs.map(r => ({
@@ -262,32 +281,151 @@ async function loadRequestsDatabase() {
     }
 }
 
-// ========== Initialization ==========
-document.addEventListener('DOMContentLoaded', async () => {
-    // Set coach name in UI
+// ========== Navigation ==========
+function showPage(pageId) {
+    if (!pageId) return;
+    const cleanId = String(pageId).replace(/^page-/, '').trim();
+    const pages = document.querySelectorAll('.page');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    let matched = false;
+    pages.forEach(page => {
+        const isMatch = page.id === `page-${cleanId}` || page.id === cleanId;
+        page.classList.toggle('active', isMatch);
+        if (isMatch) matched = true;
+    });
+
+    navLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.page === cleanId);
+    });
+
+    // Close mobile sidebar if open
+    if (typeof window.closeSidebar === 'function') {
+        window.closeSidebar();
+    }
+
+    // Scroll smoothly to top of main content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Page-specific data loaders safely executed
+    try {
+        if (cleanId === 'dashboard') {
+            if (typeof initDashboard === 'function') initDashboard();
+        } else if (cleanId === 'pending-requests') {
+            if (typeof initPendingRequests === 'function') initPendingRequests();
+        } else if (cleanId === 'history') {
+            if (typeof initHistory === 'function') initHistory();
+        } else if (cleanId === 'schedule-calendar') {
+            if (typeof initCalendar === 'function') initCalendar();
+        } else if (cleanId === 'notices') {
+            if (typeof renderNoticesList === 'function') renderNoticesList();
+            if (typeof fetchCoachNotices === 'function') fetchCoachNotices();
+        }
+    } catch (err) {
+        console.warn('[Coach Navigation] Page loader note:', err);
+    }
+}
+window.showPage = showPage;
+
+function initNavigation() {
+    // 1. Direct click listeners on all navigation links
+    document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showPage(link.dataset.page);
+        });
+    });
+
+    // 2. Direct click listeners on all dashboard cards & shortcut buttons
+    document.querySelectorAll('[data-page]:not(.nav-link)').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            showPage(el.dataset.page);
+        });
+    });
+
+    // 3. Document-level delegated click handler for guaranteed responsiveness
+    document.addEventListener('click', (e) => {
+        const trigger = (e.target && typeof e.target.closest === 'function') ? e.target.closest('[data-page]') : null;
+        if (trigger && trigger.dataset && trigger.dataset.page) {
+            e.preventDefault();
+            showPage(trigger.dataset.page);
+        }
+    });
+
+    // 4. Handle initial hash on page load
+    const initialHash = (window.location.hash || '').replace('#', '').trim();
+    if (initialHash) {
+        showPage(initialHash);
+    }
+
+    window.addEventListener('hashchange', () => {
+        const newHash = (window.location.hash || '').replace('#', '').trim();
+        if (newHash) {
+            showPage(newHash);
+        }
+    });
+}
+
+// ========== Initialization Lifecycle ==========
+function initUniXsportCoachApp() {
+    const safeExec = (fn, name) => {
+        try {
+            if (typeof fn === 'function') fn();
+        } catch (e) {
+            console.warn(`[UniXsport Coach] Init warning in ${name}:`, e);
+        }
+    };
+
+    // Set coach name in UI immediately
     const coachNameEl = document.getElementById('coachName');
-    if (coachNameEl) {
+    if (coachNameEl && currentCoach && currentCoach.name) {
         coachNameEl.textContent = currentCoach.name;
     }
-    
-    await loadRequestsDatabase();
-    initNavigation();
-    initSidebar();
-    initDarkMode();
-    initNotifications();
-    initDashboard();
-    initPendingRequests();
-    initHistory();
-    initCalendar();
-    initModals();
-    initExerciseSelector();
-    initNotices();
-    updatePendingBadge();
-    initCoachAutoRefresh();
-});
+
+    // 1. Essential Core UI & Navigation first (IMMEDIATELY, SYNC)
+    safeExec(initNavigation, 'initNavigation');
+    safeExec(initSidebar, 'initSidebar');
+    safeExec(initNotifications, 'initNotifications');
+    safeExec(initDarkMode, 'initDarkMode');
+
+    // 2. Modals and selectors
+    safeExec(initModals, 'initModals');
+    safeExec(initExerciseSelector, 'initExerciseSelector');
+    safeExec(initNotices, 'initNotices');
+
+    // 3. Initial UI rendering with local cached data
+    safeExec(initDashboard, 'initDashboard');
+    safeExec(initPendingRequests, 'initPendingRequests');
+    safeExec(initHistory, 'initHistory');
+    safeExec(initCalendar, 'initCalendar');
+    safeExec(updatePendingBadge, 'updatePendingBadge');
+
+    // 4. Fetch live database in background (Async, non-blocking)
+    (async () => {
+        try {
+            await loadRequestsDatabase();
+            await fetchCoachNotices();
+            updatePendingBadge();
+            initDashboard();
+            initPendingRequests();
+            initHistory();
+            initCalendar();
+            safeExec(initCoachAutoRefresh, 'initCoachAutoRefresh');
+        } catch (err) {
+            console.warn('[UniXsport Coach] Background data fetch error:', err);
+        }
+    })();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUniXsportCoachApp);
+} else {
+    initUniXsportCoachApp();
+}
 
 // ========== Automatic Live Data Refresh ==========
-let coachRefreshInterval = null;
 
 async function autoRefreshCoachData() {
     const activeModal = document.querySelector('.modal.show');
@@ -332,40 +470,6 @@ function initCoachAutoRefresh() {
     });
 }
 
-// ========== Navigation ==========
-function initNavigation() {
-    const navLinks = document.querySelectorAll('.nav-link');
-    const pages = document.querySelectorAll('.page');
-
-    async function showPage(pageId) {
-        pages.forEach(page => {
-            page.classList.toggle('active', page.id === `page-${pageId}`);
-        });
-        navLinks.forEach(link => {
-            link.classList.toggle('active', link.dataset.page === pageId);
-        });
-        if (typeof window.closeSidebar === 'function') window.closeSidebar();
-        
-        await loadRequestsDatabase();
-        // Refresh data when switching pages
-        if (pageId === 'dashboard') initDashboard();
-        if (pageId === 'pending-requests') initPendingRequests();
-        if (pageId === 'history') initHistory();
-        if (pageId === 'schedule-calendar') initCalendar();
-        if (pageId === 'notices') renderNoticesList();
-    }
-
-    document.addEventListener('click', (e) => {
-        const trigger = e.target.closest('[data-page]');
-        if (trigger) {
-            e.preventDefault();
-            showPage(trigger.dataset.page);
-        }
-    });
-
-    window.showPage = showPage;
-}
-
 // ========== Sidebar (Mobile) ==========
 function initSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -375,13 +479,13 @@ function initSidebar() {
     function openSidebar() {
         sidebar?.classList.add('open');
         overlay?.classList.add('show');
-        document.body.style.overflow = 'hidden';
+        if (document.body) document.body.style.overflow = 'hidden';
     }
 
     function closeSidebar() {
         sidebar?.classList.remove('open');
         overlay?.classList.remove('show');
-        document.body.style.overflow = '';
+        if (document.body) document.body.style.overflow = '';
     }
 
     toggle?.addEventListener('click', openSidebar);
@@ -514,7 +618,6 @@ function renderRecentActivity() {
 }
 
 // ========== Pending Requests ==========
-let pendingListenersAttached = false;
 function initPendingRequests() {
     renderPendingRequests();
     
@@ -738,26 +841,22 @@ function renderHistory() {
 }
 
 // ========== Calendar ==========
-let calendarListenersAttached = false;
 function initCalendar() {
     renderCalendar();
     
     if (!calendarListenersAttached) {
         document.getElementById('prevWeek')?.addEventListener('click', () => {
-            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
             renderCalendar();
         });
 
         document.getElementById('nextWeek')?.addEventListener('click', () => {
-            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
             renderCalendar();
         });
         calendarListenersAttached = true;
     }
 }
 
-let currentWeekStart = new Date();
-currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+
 
 function renderCalendar() {
     const calendar = document.getElementById('scheduleCalendar');
@@ -825,7 +924,6 @@ function renderCalendar() {
 }
 
 // ========== Modals ==========
-let currentRequestId = null;
 
 function initModals() {
     // Approval Modal
