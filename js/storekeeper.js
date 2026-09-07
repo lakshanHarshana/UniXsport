@@ -38,26 +38,9 @@ async function loadStorekeeperDatabase() {
             }
         }
 
-        // 2. Try relative /api/storekeeper/dashboard
+        // 2. Try getStorekeeperAPI with multi-host fallback
         if (!res || !res.success) {
-            try {
-                const raw = await fetch('/api/storekeeper/dashboard');
-                if (raw.ok) {
-                    const parsed = await raw.json();
-                    if (parsed && parsed.success) res = parsed;
-                }
-            } catch (e) {}
-        }
-
-        // 3. Try absolute http://localhost:5000/api/storekeeper/dashboard
-        if (!res || !res.success) {
-            try {
-                const raw = await fetch('http://localhost:5000/api/storekeeper/dashboard');
-                if (raw.ok) {
-                    const parsed = await raw.json();
-                    if (parsed && parsed.success) res = parsed;
-                }
-            } catch (e) {}
+            res = await getStorekeeperAPI('/api/storekeeper/dashboard');
         }
 
         if (res && res.success) {
@@ -1033,11 +1016,7 @@ function openQuickIssueModal(student) {
 
                 if (!matchedEq) {
                     try {
-                        const res = await fetch('/api/storekeeper/search-equipment', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ query: cleanTag })
-                        }).then(r => r.json());
+                        const res = await postStorekeeperAPI('/api/storekeeper/search-equipment', { query: cleanTag, equipmentId: cleanTag });
                         if (res && res.success && res.equipment) {
                             matchedEq = res.equipment;
                         }
@@ -1134,15 +1113,20 @@ function openQuickIssueModal(student) {
 
             try {
                 const studentLookup = student.user_id || student.userId || student.regNo || student.id;
-                const issueRes = await fetch('/api/storekeeper/issue-gear', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                let issueRes = null;
+                if (window.UniXsportAPI && typeof window.UniXsportAPI.issueEquipment === 'function') {
+                    issueRes = await window.UniXsportAPI.issueEquipment(studentLookup, eqId, qty).catch(() => null);
+                }
+                if (!issueRes || !issueRes.success) {
+                    issueRes = await postStorekeeperAPI('/api/storekeeper/issue-gear', {
                         userId: studentLookup,
+                        studentId: studentLookup,
+                        studentRegNo: studentLookup,
                         equipmentId: eqId,
-                        qty
-                    })
-                }).then(r => r.json());
+                        qty: qty,
+                        quantity: qty
+                    });
+                }
 
                 if (issueRes && issueRes.success) {
                     showToast(`✓ Successfully issued ${qty}x ${selectedOpt.dataset.name || 'Equipment'} to ${student.name}!`, 'success');
@@ -1165,7 +1149,8 @@ function openQuickIssueModal(student) {
                     renderBorrowHistory();
                     initDashboard();
                 } else {
-                    showToast(issueRes?.error || 'Failed to issue equipment.', 'error');
+                    const errMsg = (issueRes && issueRes.error) || 'Failed to issue equipment.';
+                    showToast(errMsg, 'error');
                 }
             } catch(err) {
                 console.error('Quick issue error:', err);
@@ -1203,11 +1188,11 @@ async function lookupTerminalStudent(query, triggerActionPopup = false) {
         }
 
         if (!student) {
-            const searchRes = await fetch('/api/storekeeper/search-student', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: clean })
-            }).then(r => r.json()).catch(() => null);
+            const searchRes = await postStorekeeperAPI('/api/storekeeper/search-student', {
+                userId: clean,
+                studentId: clean,
+                studentRegNo: clean
+            });
 
             if (searchRes && searchRes.success && searchRes.student) {
                 student = searchRes.student;
