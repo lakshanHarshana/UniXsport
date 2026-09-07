@@ -39,8 +39,11 @@
 const char* WIFI_SSID     = "Hostel_WiFi";        // Enter your local Wi-Fi Name
 const char* WIFI_PASSWORD = "wifi@HostRUSL";    // Enter your Wi-Fi Password
 
-// UniXsport Server Endpoint (Replace with your Laptop/Server IP on local Wi-Fi)
-const char* SERVER_URL = "http://10.30.1.1:5000/api/rfid/scan";
+// Cloud Production API (Default - Works anywhere over Wi-Fi / Hotspot)
+const char* SERVER_URL = "https://unixsport-api.onrender.com/api/rfid/scan";
+
+// Local Laptop Fallback (Uncomment if running node server/server.js locally)
+// const char* SERVER_URL = "http://10.30.1.1:5000/api/rfid/scan";
 
 const char* DEVICE_ID     = "STORE_GATE_01";         // Scanner identifier
 // ====================================================== //
@@ -233,8 +236,7 @@ void connectWiFi() {
 }
 
 #include <WiFiClient.h>
-
-WiFiClient wifiClient;
+#include <WiFiClientSecure.h>
 
 void sendScanToServer(String cardUID) {
   if (WiFi.status() != WL_CONNECTED) {
@@ -245,11 +247,6 @@ void sendScanToServer(String cardUID) {
     return;
   }
 
-  HTTPClient http;
-  http.begin(wifiClient, SERVER_URL);
-  http.setTimeout(8000);
-  http.addHeader("Content-Type", "application/json");
-
   // Construct JSON payload
   String jsonPayload = "{\"rfid_tag\":\"" + cardUID + "\",\"device_id\":\"" + String(DEVICE_ID) + "\"}";
 
@@ -258,7 +255,24 @@ void sendScanToServer(String cardUID) {
   Serial.print("Payload: ");
   Serial.println(jsonPayload);
 
-  int httpResponseCode = http.POST(jsonPayload);
+  HTTPClient http;
+  bool isHttps = String(SERVER_URL).startsWith("https://");
+  int httpResponseCode = -1;
+
+  if (isHttps) {
+    WiFiClientSecure secureClient;
+    secureClient.setInsecure(); // Skip certificate verification for Render / Custom SSL
+    http.begin(secureClient, SERVER_URL);
+    http.setTimeout(12000);
+    http.addHeader("Content-Type", "application/json");
+    httpResponseCode = http.POST(jsonPayload);
+  } else {
+    WiFiClient plainClient;
+    http.begin(plainClient, SERVER_URL);
+    http.setTimeout(8000);
+    http.addHeader("Content-Type", "application/json");
+    httpResponseCode = http.POST(jsonPayload);
+  }
 
   if (httpResponseCode > 0) {
     String response = http.getString();
@@ -275,9 +289,9 @@ void sendScanToServer(String cardUID) {
 
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("Access Granted  ");
+      lcd.print("Scan Received!  ");
       lcd.setCursor(0, 1);
-      lcd.print("Welcome!");
+      lcd.print("ID: " + cardUID);
     } else if (httpResponseCode == 403) {
       // Unregistered RFID Card
       digitalWrite(RED_LED_PIN, HIGH);

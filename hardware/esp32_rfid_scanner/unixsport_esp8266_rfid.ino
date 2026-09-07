@@ -26,11 +26,11 @@
 #include <MFRC522.h>
 
 // ================= USER CONFIGURATION ================= //
-const char* WIFI_SSID     = "YOUR_WIFI_NAME";        // Enter your local Wi-Fi Name
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";    // Enter your Wi-Fi Password
+const char* WIFI_SSID     = "Hostel_WiFi";        // Enter your local Wi-Fi Name
+const char* WIFI_PASSWORD = "wifi@HostRUSL";    // Enter your Wi-Fi Password
 
-// UniXsport Server Endpoint (Replace with your Laptop/Server IP on local Wi-Fi)
-const char* SERVER_URL    = "http://192.168.1.100:5000/api/rfid/scan";
+// Cloud Production API (Default - Works over any Wi-Fi / Hotspot)
+const char* SERVER_URL    = "https://unixsport-api.onrender.com/api/rfid/scan";
 const char* DEVICE_ID     = "STORE_GATE_01";
 // ====================================================== //
 
@@ -134,15 +134,27 @@ void sendScanToServer(String cardUID) {
   if (WiFi.status() != WL_CONNECTED) return;
 
   HTTPClient http;
-  http.begin(wifiClient, SERVER_URL);
-  http.addHeader("Content-Type", "application/json");
-
+  bool isHttps = String(SERVER_URL).startsWith("https://");
   String jsonPayload = "{\"rfid_tag\":\"" + cardUID + "\",\"device_id\":\"" + String(DEVICE_ID) + "\"}";
 
   Serial.print("Sending POST to: ");
   Serial.println(SERVER_URL);
 
-  int httpResponseCode = http.POST(jsonPayload);
+  int httpResponseCode = -1;
+  if (isHttps) {
+    WiFiClientSecure secureClient;
+    secureClient.setInsecure();
+    http.begin(secureClient, SERVER_URL);
+    http.setTimeout(12000);
+    http.addHeader("Content-Type", "application/json");
+    httpResponseCode = http.POST(jsonPayload);
+  } else {
+    WiFiClient plainClient;
+    http.begin(plainClient, SERVER_URL);
+    http.setTimeout(8000);
+    http.addHeader("Content-Type", "application/json");
+    httpResponseCode = http.POST(jsonPayload);
+  }
 
   if (httpResponseCode > 0) {
     String response = http.getString();
