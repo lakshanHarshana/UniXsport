@@ -1062,6 +1062,8 @@ document.getElementById('addUserBtn')?.addEventListener('click', () => {
     document.getElementById('userId').value = '';
     const idGroup = document.getElementById('userIdDisplayGroup');
     if (idGroup) idGroup.style.display = 'none';
+    if (document.getElementById('userRegNo')) document.getElementById('userRegNo').value = '';
+    if (document.getElementById('userDepartment')) document.getElementById('userDepartment').value = '';
     document.getElementById('userPasswordGroup').style.display = 'block';
     document.getElementById('userPassword').required = true;
     document.getElementById('userModal').classList.add('show');
@@ -1079,7 +1081,9 @@ document.getElementById('userForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     const id = document.getElementById('userId').value;
     const name = document.getElementById('userName').value.trim();
+    const regNo = document.getElementById('userRegNo')?.value.trim().toUpperCase() || '';
     const email = document.getElementById('userEmail').value.trim();
+    const department = document.getElementById('userDepartment')?.value.trim() || '';
     const password = document.getElementById('userPassword').value;
     const role = document.getElementById('userRole').value;
     const rfid = document.getElementById('userRfid').value.trim();
@@ -1131,23 +1135,25 @@ document.getElementById('userForm')?.addEventListener('submit', async e => {
         if (id) {
             await window.UniXsportAPI.updateUserAdmin(id, {
                 name,
+                regNo: regNo || undefined,
                 email,
                 role,
+                department: department || undefined,
+                faculty: department || undefined,
                 rfidTag: rfid || '',
                 password: password || undefined
             });
             showToast('User updated successfully in database!', 'success');
         } else {
-            const prefix = role === 'student' ? 'STU' : (role === 'coach' ? 'COACH' : (role === 'storekeeper' ? 'STORE' : 'ADMIN'));
-            const regNo = rfid || (prefix + Date.now().toString().slice(-4));
             await window.UniXsportAPI.createUser({
-                regNo,
+                regNo: regNo || undefined,
                 name,
                 email,
                 password: password || 'password123',
                 role,
                 rfidTag: rfid || '',
-                department: role === 'admin' ? 'Administration' : (role === 'storekeeper' ? 'Sports Store' : (role === 'coach' ? 'Sports Coaching' : 'General'))
+                department: department || (role === 'admin' ? 'Administration' : (role === 'storekeeper' ? 'Sports Store' : (role === 'coach' ? 'Sports Coaching' : 'General'))),
+                faculty: department || undefined
             });
             showToast('User created successfully in database!', 'success');
         }
@@ -1173,9 +1179,15 @@ function editUser(id) {
     const idInput = document.getElementById('userDisplayId');
     if (idGroup) idGroup.style.display = 'block';
     if (idInput) idInput.value = user.user_id || user.userId || '';
-    document.getElementById('userName').value = user.name;
-    document.getElementById('userEmail').value = user.email;
-    document.getElementById('userRole').value = user.role;
+    document.getElementById('userName').value = user.name || '';
+    if (document.getElementById('userRegNo')) {
+        document.getElementById('userRegNo').value = user.regNo || user.username || '';
+    }
+    document.getElementById('userEmail').value = user.email || '';
+    if (document.getElementById('userDepartment')) {
+        document.getElementById('userDepartment').value = user.department || user.faculty || '';
+    }
+    document.getElementById('userRole').value = user.role || 'student';
     document.getElementById('userRfid').value = user.rfidCode || user.rfidTag || '';
     document.getElementById('userPassword').value = '';
     document.getElementById('userPasswordGroup').style.display = 'block';

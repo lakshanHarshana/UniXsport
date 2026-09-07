@@ -121,7 +121,7 @@ router.get('/dashboard', (req, res) => {
  */
 router.post('/create-user', async (req, res) => {
   try {
-    const { regNo, name, email, password, role, rfidTag, department } = req.body;
+    const { regNo, name, email, password, role, rfidTag, department, faculty, phone, gender } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ success: false, error: 'Name, Email, Password, and Role are required.' });
@@ -133,20 +133,38 @@ router.post('/create-user', async (req, res) => {
       return res.status(400).json({ success: false, error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
     }
 
-    const finalRegNo = (regNo || '').trim().toUpperCase() || (
-      normalizedRole === 'student' ? 'STU' + Date.now().toString().slice(-4) :
-      normalizedRole === 'coach' ? 'COACH' + Date.now().toString().slice(-4) :
-      normalizedRole === 'storekeeper' ? 'STORE' + Date.now().toString().slice(-4) :
-      'ADMIN' + Date.now().toString().slice(-4)
-    );
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanName = name.trim();
+    const cleanDept = (faculty || department || (normalizedRole === 'admin' ? 'Administration' : (normalizedRole === 'storekeeper' ? 'Sports Store' : (normalizedRole === 'coach' ? 'Sports Coaching' : 'General')))).trim();
+    const cleanFaculty = (faculty || department || cleanDept).trim();
 
-    const existing = db.users.find(u => 
-      ((u.regNo || '').toLowerCase() === finalRegNo.toLowerCase()) || 
-      ((u.email || '').toLowerCase() === email.toLowerCase().trim()) ||
-      ((u.username || '').toLowerCase() === finalRegNo.toLowerCase())
-    );
-    if (existing) {
-      return res.status(400).json({ success: false, error: 'User with this Registration No/Username or Email already exists.' });
+    // Auto-generate a clean unique Registration/Staff ID if not provided
+    let finalRegNo = (regNo || '').trim().toUpperCase();
+    if (!finalRegNo) {
+      let seqNum = 1;
+      const prefix = normalizedRole === 'student' ? 'STU' : (normalizedRole === 'coach' ? 'COACH' : (normalizedRole === 'storekeeper' ? 'STORE' : 'ADMIN'));
+      finalRegNo = `${prefix}${String(Date.now()).slice(-4)}`;
+      while (db.users.some(u => (u.regNo || '').toUpperCase() === finalRegNo || (u.username || '').toUpperCase() === finalRegNo)) {
+        finalRegNo = `${prefix}${String(Date.now() + seqNum++).slice(-4)}`;
+      }
+    }
+
+    // Check duplicate Registration Number or Username
+    const existingReg = db.users.find(u => {
+      const uReg = (u.regNo || '').toLowerCase().trim();
+      const uUser = (u.username || '').toLowerCase().trim();
+      const uId = (u.user_id || u.userId || '').toLowerCase().trim();
+      const target = finalRegNo.toLowerCase();
+      return uReg === target || uUser === target || uId === target;
+    });
+    if (existingReg) {
+      return res.status(400).json({ success: false, error: `User with Registration Number/ID "${finalRegNo}" already exists.` });
+    }
+
+    // Check duplicate Email
+    const existingEmail = db.users.find(u => (u.email || '').toLowerCase().trim() === cleanEmail);
+    if (existingEmail) {
+      return res.status(400).json({ success: false, error: `User with email "${cleanEmail}" already exists.` });
     }
 
     const user_id = generateNextUserId();
@@ -182,20 +200,26 @@ router.post('/create-user', async (req, res) => {
     }
 
     const newUser = {
-      id: 'usr_' + Date.now(),
+      id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       user_id,
       userId: user_id,
       regNo: finalRegNo,
       username: finalRegNo,
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
+      name: cleanName,
+      email: cleanEmail,
+      phone: (phone || '').trim(),
+      gender: (gender || '').trim(),
       passwordHash,
+      password,
       role: normalizedRole,
       rfidTag: cleanRfid,
       rfidCode: cleanRfid,
-      department: department || (normalizedRole === 'admin' ? 'Administration' : (normalizedRole === 'storekeeper' ? 'Sports Store' : (normalizedRole === 'coach' ? 'Sports Coaching' : 'General'))),
+      department: cleanDept,
+      faculty: cleanFaculty,
       status: 'active',
       avatarUrl: '',
+      profileImage: '',
+      profilePhoto: '',
       createdAt: new Date().toISOString()
     };
 
@@ -205,7 +229,7 @@ router.post('/create-user', async (req, res) => {
     res.status(201).json({ success: true, message: 'User created successfully.', user: newUser });
   } catch (err) {
     console.error('Error creating user:', err);
-    res.status(500).json({ success: false, error: 'Failed to create user.' });
+    res.status(500).json({ success: false, error: 'Failed to create user: ' + err.message });
   }
 });
 
@@ -220,14 +244,37 @@ router.patch('/user/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'User not found.' });
     }
 
-    const { name, email, role, rfidTag, department, password, status } = req.body;
+    const { name, email, regNo, role, rfidTag, department, faculty, password, status } = req.body;
+    
     if (name) user.name = name.trim();
-    if (email) user.email = email.toLowerCase().trim();
+
+    // Check unique email if changing
+    if (email && email.toLowerCase().trim() !== (user.email || '').toLowerCase().trim()) {
+      const cleanEmail = email.toLowerCase().trim();
+      const dupEmail = db.users.find(u => String(u.id) !== String(user.id) && (u.email || '').toLowerCase().trim() === cleanEmail);
+      if (dupEmail) {
+        return res.status(400).json({ success: false, error: `Email address "${cleanEmail}" is already in use by another account.` });
+      }
+      user.email = cleanEmail;
+    }
+
+    // Check unique regNo if changing
+    if (regNo && regNo.toUpperCase().trim() !== (user.regNo || '').toUpperCase().trim()) {
+      const cleanReg = regNo.toUpperCase().trim();
+      const dupReg = db.users.find(u => String(u.id) !== String(user.id) && ((u.regNo || '').toUpperCase().trim() === cleanReg || (u.username || '').toUpperCase().trim() === cleanReg));
+      if (dupReg) {
+        return res.status(400).json({ success: false, error: `Registration Number "${cleanReg}" is already in use by another account.` });
+      }
+      user.regNo = cleanReg;
+      user.username = cleanReg;
+    }
+
     if (role) {
       const validRoles = ['student', 'coach', 'storekeeper', 'admin'];
       const r = role.toLowerCase().trim();
       if (validRoles.includes(r)) user.role = r;
     }
+
     if (rfidTag !== undefined) {
       const cleanRfid = (rfidTag || '').trim().toUpperCase();
       const normalizeTag = (t) => String(t || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -265,17 +312,26 @@ router.patch('/user/:id', async (req, res) => {
       user.rfidTag = cleanRfid;
       user.rfidCode = cleanRfid;
     }
-    if (department) user.department = department;
+
+    if (department) {
+      user.department = department.trim();
+      if (!user.faculty) user.faculty = department.trim();
+    }
+    if (faculty) {
+      user.faculty = faculty.trim();
+      user.department = faculty.trim();
+    }
     if (status) user.status = status;
     if (password && password.length >= 6) {
       user.passwordHash = await bcrypt.hash(password, 10);
+      user.password = password;
     }
 
     saveDatabase();
     res.json({ success: true, message: 'User updated successfully.', user });
   } catch (err) {
     console.error('Error updating user:', err);
-    res.status(500).json({ success: false, error: 'Failed to update user.' });
+    res.status(500).json({ success: false, error: 'Failed to update user: ' + err.message });
   }
 });
 

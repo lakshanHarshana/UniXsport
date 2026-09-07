@@ -19,6 +19,38 @@
       "profilePhoto": "/uploads/avatars/admin_US001_1787160833181.jpg",
       "updatedAt": "2026-08-19T17:35:34.029Z",
       "password": "password"
+    },
+    {
+      "id": "usr_1788807308169_og9mc",
+      "user_id": "US002",
+      "userId": "US002",
+      "regNo": "ITT/2023/099",
+      "username": "ITT/2023/099",
+      "name": "Kasun Bandara",
+      "email": "kasun.b@rjt.ac.lk",
+      "phone": "0771234567",
+      "gender": "Male",
+      "year": "",
+      "faculty": "Faculty of Technology",
+      "department": "Faculty of Technology",
+      "age": "",
+      "height": "",
+      "weight": "",
+      "fitnessLevel": "Not Set",
+      "injuryHistory": "None",
+      "trainingGoal": "General Fitness",
+      "bio": "Member of Rajarata University Sports & Gym Club.",
+      "passwordHash": "$2a$10$njFLqfVpPc.XvPiH723ziOAexOXNiDbLcMLJEpcYHCLem0LNStqP6",
+      "password": "password123",
+      "role": "student",
+      "rfidTag": "A1B2C3D4",
+      "rfidCode": "A1B2C3D4",
+      "status": "active",
+      "avatarUrl": "",
+      "profileImage": "",
+      "profilePhoto": "",
+      "createdAt": "2026-09-07T18:55:08.169Z",
+      "rfid": "A1B2C3D4"
     }
   ],
   "equipment": [
@@ -153,13 +185,32 @@
     }
   ],
   "rfidScans": [],
-  "sessions": [],
+  "sessions": [
+    {
+      "userId": "usr_1788807308169_og9mc",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA3MzA4MTY5X29nOW1jIiwidXNlcl9pZCI6IlVTMDAyIiwidXNlcklkIjoiVVMwMDIiLCJyZWdObyI6IklUVC8yMDIzLzA5OSIsIm5hbWUiOiJLYXN1biBCYW5kYXJhIiwiZW1haWwiOiJrYXN1bi5iQHJqdC5hYy5sayIsInJvbGUiOiJzdHVkZW50IiwiZGVwYXJ0bWVudCI6IkZhY3VsdHkgb2YgVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDczMDgsImV4cCI6MTc4ODg5MzcwOH0.IyM3ii2FgSkr4Jz55Iwob0kI3ZpLF6Qwl_9k2VvNk24",
+      "loggedInAt": "2026-09-07T18:55:08.251Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_1788807308169_og9mc",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA3MzA4MTY5X29nOW1jIiwidXNlcl9pZCI6IlVTMDAyIiwidXNlcklkIjoiVVMwMDIiLCJyZWdObyI6IklUVC8yMDIzLzA5OSIsIm5hbWUiOiJLYXN1biBCYW5kYXJhIiwiZW1haWwiOiJrYXN1bi5iQHJqdC5hYy5sayIsInJvbGUiOiJzdHVkZW50IiwiZGVwYXJ0bWVudCI6IkZhY3VsdHkgb2YgVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDczMDgsImV4cCI6MTc4ODg5MzcwOH0.IyM3ii2FgSkr4Jz55Iwob0kI3ZpLF6Qwl_9k2VvNk24",
+      "loggedInAt": "2026-09-07T18:55:08.310Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_1788807308169_og9mc",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA3MzA4MTY5X29nOW1jIiwidXNlcl9pZCI6IlVTMDAyIiwidXNlcklkIjoiVVMwMDIiLCJyZWdObyI6IklUVC8yMDIzLzA5OSIsIm5hbWUiOiJLYXN1biBCYW5kYXJhIiwiZW1haWwiOiJrYXN1bi5iQHJqdC5hYy5sayIsInJvbGUiOiJzdHVkZW50IiwiZGVwYXJ0bWVudCI6IkZhY3VsdHkgb2YgVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDczMDgsImV4cCI6MTc4ODg5MzcwOH0.IyM3ii2FgSkr4Jz55Iwob0kI3ZpLF6Qwl_9k2VvNk24",
+      "loggedInAt": "2026-09-07T18:55:08.369Z",
+      "revoked": false
+    }
+  ],
   "contactMessages": [],
   "meta": {
     "lastCleaned": "2026-09-07T15:35:49.692Z",
     "version": "1.0.0-clean",
     "system": "UniXsport University Management Platform",
-    "lastUserIdSeq": 1
+    "lastUserIdSeq": 2
   },
   "latestRfidScan": null
 }

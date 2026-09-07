@@ -12,7 +12,7 @@ const { authenticateToken } = require('../middleware/auth');
  */
 router.post('/register', async (req, res) => {
   try {
-    const { regNo, name, email, password, department, rfidTag } = req.body;
+    const { regNo, name, email, password, department, faculty, rfidTag, phone, gender, year, age, height, weight, fitnessLevel } = req.body;
 
     if (!regNo || !name || !email || !password) {
       return res.status(400).json({ success: false, error: 'Registration No, Name, Email and Password are required.' });
@@ -21,6 +21,8 @@ router.post('/register', async (req, res) => {
     const trimmedRegNo = regNo.trim().toUpperCase();
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedName = name.trim();
+    const cleanDept = (faculty || department || 'General').trim();
+    const cleanFaculty = (faculty || department || 'General').trim();
 
     // Check email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,22 +36,28 @@ router.post('/register', async (req, res) => {
 
     if (!db.users) db.users = [];
 
-    // Check duplicate Registration No
-    const existingReg = db.users.find(
-      u => u.regNo && u.regNo.toLowerCase() === trimmedRegNo.toLowerCase()
-    );
+    // Check duplicate Registration No or Username across all accounts
+    const existingReg = db.users.find(u => {
+      const uReg = (u.regNo || '').toLowerCase().trim();
+      const uUser = (u.username || '').toLowerCase().trim();
+      const uId = (u.user_id || u.userId || '').toLowerCase().trim();
+      const target = trimmedRegNo.toLowerCase();
+      return uReg === target || uUser === target || uId === target;
+    });
     if (existingReg) {
-      return res.status(400).json({ success: false, error: 'An account with this Registration Number already exists.' });
+      return res.status(400).json({ success: false, error: `An account with Registration Number "${trimmedRegNo}" already exists.` });
     }
 
-    // Check duplicate Email
+    // Check duplicate Email across all accounts
     const existingEmail = db.users.find(
-      u => u.email && u.email.toLowerCase() === trimmedEmail.toLowerCase()
+      u => u.email && u.email.toLowerCase().trim() === trimmedEmail
     );
     if (existingEmail) {
-      return res.status(400).json({ success: false, error: 'An account with this email already exists.' });
+      return res.status(400).json({ success: false, error: `An account with Email "${trimmedEmail}" already exists.` });
     }
 
+    // Check duplicate RFID Tag if provided
+    let cleanRfidTag = '';
     if (rfidTag) {
       const cleanRfid = rfidTag.trim().toUpperCase();
       const normalizeTag = (t) => String(t || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -63,7 +71,7 @@ router.post('/register', async (req, res) => {
         if (dupUser) {
           return res.status(400).json({
             success: false,
-            error: `RFID Tag Already In Use: Tag ${cleanRfid} is already assigned to user ${dupUser.name}.`
+            error: `RFID Tag Already In Use: Tag ${cleanRfid} is already assigned to user ${dupUser.name} (${dupUser.user_id || dupUser.regNo}).`
           });
         }
 
@@ -77,27 +85,41 @@ router.post('/register', async (req, res) => {
             error: `RFID Tag Already In Use: Tag ${cleanRfid} is already assigned to equipment item '${dupEquip.name}'.`
           });
         }
+        cleanRfidTag = cleanRfid;
       }
     }
 
-    const cleanRfidTag = (rfidTag || '').trim().toUpperCase();
     const user_id = generateNextUserId();
     const passwordHash = await bcrypt.hash(password, 10);
     const newUser = {
-      id: 'usr_' + Date.now(),
+      id: 'usr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       user_id,
       userId: user_id,
       regNo: trimmedRegNo,
       username: trimmedRegNo,
       name: trimmedName,
       email: trimmedEmail,
+      phone: (phone || '').trim(),
+      gender: (gender || '').trim(),
+      year: (year || '').trim(),
+      faculty: cleanFaculty,
+      department: cleanDept,
+      age: age || '',
+      height: height || '',
+      weight: weight || '',
+      fitnessLevel: fitnessLevel || 'Not Set',
+      injuryHistory: 'None',
+      trainingGoal: 'General Fitness',
+      bio: 'Member of Rajarata University Sports & Gym Club.',
       passwordHash,
+      password,
       role: 'student',
       rfidTag: cleanRfidTag,
       rfidCode: cleanRfidTag,
-      department: department || 'General',
       status: 'active',
       avatarUrl: '',
+      profileImage: '',
+      profilePhoto: '',
       createdAt: new Date().toISOString()
     };
 
@@ -114,12 +136,15 @@ router.post('/register', async (req, res) => {
         regNo: newUser.regNo,
         name: newUser.name,
         email: newUser.email,
-        role: newUser.role
+        role: newUser.role,
+        department: newUser.department,
+        faculty: newUser.faculty,
+        rfidTag: newUser.rfidTag
       }
     });
   } catch (err) {
     console.error('Registration Error:', err);
-    res.status(500).json({ success: false, error: 'Server error during registration.' });
+    res.status(500).json({ success: false, error: 'Server error during registration: ' + err.message });
   }
 });
 

@@ -91,18 +91,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const apiRes = await window.UniXsportAPI.register({
                 name: fullName,
                 regNo: regNo,
+                faculty: faculty,
                 department: faculty,
                 email: email,
                 password: password
             });
 
             if (apiRes && apiRes.success) {
-                showToast('Registration successful! Redirecting to sign in page...', 'success');
+                showToast(`✓ Welcome ${fullName}! Account created successfully. Redirecting to sign in...`, 'success');
                 setTimeout(() => {
                     window.location.href = `login.html?role=student&registered=${encodeURIComponent(regNo)}`;
                 }, 1200);
             } else {
-                throw new Error(apiRes.error || 'Registration failed');
+                throw new Error((apiRes && apiRes.error) || 'Registration failed');
             }
         } catch (err) {
             showToast(err.message || 'Registration failed. Please check your details.', 'error');

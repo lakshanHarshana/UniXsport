@@ -29,15 +29,32 @@
  */
 
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include <HTTPClient.h>
+#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <SPI.h>
 #include <MFRC522.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-// ================= USER CONFIGURATION ================= //
-const char* WIFI_SSID     = "Hostel_WiFi";        // Enter your local Wi-Fi Name
-const char* WIFI_PASSWORD = "wifi@HostRUSL";    // Enter your Wi-Fi Password
+WiFiMulti wifiMulti;
+
+// ================= MULTI-WIFI CONFIGURATION ================= //
+// You can enter 2, 3, or more Wi-Fi networks below.
+// The ESP32 will automatically connect to whichever Wi-Fi is available!
+struct WiFiCredential {
+  const char* ssid;
+  const char* password;
+};
+
+const WiFiCredential WIFI_NETWORKS[] = {
+  { "abc",                 "12345678" },         // Network 1: abc Wi-Fi / Hotspot
+  { "Hostel_WiFi",         "wifi@HostRUSL" },    // Network 2: Hostel Wi-Fi
+  { "RUSL_Sports_WiFi",    "sports@2026" },      // Network 3: Campus / Sports Complex
+  { "Home_WiFi",           "homePassword" }      // Network 4: Home / Lab Wi-Fi
+};
+const int NUM_WIFI_NETWORKS = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
 
 // Cloud Production API (Default - Works anywhere over Wi-Fi / Hotspot)
 const char* SERVER_URL = "https://unixsport-api.onrender.com/api/rfid/scan";
@@ -46,7 +63,7 @@ const char* SERVER_URL = "https://unixsport-api.onrender.com/api/rfid/scan";
 // const char* SERVER_URL = "http://10.30.1.1:5000/api/rfid/scan";
 
 const char* DEVICE_ID     = "STORE_GATE_01";         // Scanner identifier
-// ====================================================== //
+// ============================================================ //
 
 // Pin Definitions (Exact Custom Setup)
 #define RFID_SS_PIN   5
@@ -71,7 +88,7 @@ void setup() {
   Serial.begin(115200);
   delay(500);
   Serial.println("\n\n========================================");
-  Serial.println("  UniXsport ESP32 Hardware RFID System  ");
+  Serial.println("  UniXsport ESP32 Multi-WiFi RFID System ");
   Serial.println("========================================");
 
   // Initialize GPIO Pins
@@ -100,7 +117,16 @@ void setup() {
   rfid.PCD_DumpVersionToSerial();
   Serial.println("RC522 RFID Reader Ready.");
 
-  // Connect to Wi-Fi
+  // Register configured Wi-Fi networks in WiFiMulti pool
+  for (int i = 0; i < NUM_WIFI_NETWORKS; i++) {
+    if (strlen(WIFI_NETWORKS[i].ssid) > 0) {
+      wifiMulti.addAP(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].password);
+      Serial.print("Registered Wi-Fi AP: ");
+      Serial.println(WIFI_NETWORKS[i].ssid);
+    }
+  }
+
+  // Connect to best available Wi-Fi
   connectWiFi();
 }
 
@@ -183,20 +209,18 @@ void showReadyScreen() {
 }
 
 void connectWiFi() {
-  Serial.print("Connecting to Wi-Fi SSID: ");
-  Serial.println(WIFI_SSID);
+  Serial.println("Searching and connecting to best available Wi-Fi...");
 
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Connecting Wi-Fi");
+  lcd.print("Scanning Wi-Fi..");
   lcd.setCursor(0, 1);
-  lcd.print(WIFI_SSID);
+  lcd.print("Finding Network ");
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+  while (wifiMulti.run() != WL_CONNECTED && attempts < 25) {
     delay(500);
     Serial.print(".");
     digitalWrite(GREEN_LED_PIN, !digitalRead(GREEN_LED_PIN));
@@ -205,6 +229,8 @@ void connectWiFi() {
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n[Wi-Fi CONNECTED]");
+    Serial.print("Connected to SSID: ");
+    Serial.println(WiFi.SSID());
     Serial.print("ESP32 IP Address: ");
     Serial.println(WiFi.localIP());
 
@@ -214,23 +240,25 @@ void connectWiFi() {
 
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Wi-Fi Connected!");
+    String ssidDisp = WiFi.SSID();
+    if (ssidDisp.length() > 10) ssidDisp = ssidDisp.substring(0, 10);
+    lcd.print("Wi-Fi:" + ssidDisp);
     lcd.setCursor(0, 1);
     lcd.print(WiFi.localIP().toString());
     delay(2000);
 
     showReadyScreen();
   } else {
-    Serial.println("\n[Wi-Fi FAILED] Will retry.");
+    Serial.println("\n[Wi-Fi FAILED] No configured network found in range.");
     digitalWrite(GREEN_LED_PIN, LOW);
     digitalWrite(RED_LED_PIN, HIGH);
     beep(3, 120);
 
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Wi-Fi Failed!   ");
+    lcd.print("No Wi-Fi Found! ");
     lcd.setCursor(0, 1);
-    lcd.print("Check Settings  ");
+    lcd.print("Check Networks  ");
     delay(2000);
   }
 }

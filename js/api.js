@@ -122,28 +122,62 @@ class UniXsportAPI {
       delete headers['Content-Type'];
     }
 
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers
-      });
+    const hostCandidates = [
+      API_BASE_URL,
+      'https://unixsport-api.onrender.com',
+      'http://localhost:5000',
+      'http://127.0.0.1:5000',
+      ''
+    ].filter((h, idx, arr) => arr.indexOf(h) === idx);
 
-      const data = await response.json();
+    let lastError = null;
 
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          if (endpoint !== '/api/auth/login') {
-            console.warn(`Authentication token invalid or expired for [${endpoint}].`);
+    for (const host of hostCandidates) {
+      try {
+        const fullUrl = host ? `${host}${endpoint}` : endpoint;
+        const response = await fetch(fullUrl, {
+          ...options,
+          headers
+        });
+
+        // If returned HTML instead of JSON (e.g. 404 from static host), skip to next candidate if not direct error
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          const text = await response.text();
+          if (text.trim().startsWith('<')) {
+            continue;
+          }
+          try {
+            const parsed = JSON.parse(text);
+            return parsed;
+          } catch(e) {
+            continue;
           }
         }
-        throw new Error(data.error || data.message || 'API request failed');
-      }
 
-      return data;
-    } catch (err) {
-      console.error(`[API Error] ${endpoint}:`, err.message);
-      throw err;
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            if (endpoint !== '/api/auth/login') {
+              console.warn(`Authentication token invalid or expired for [${endpoint}].`);
+            }
+          }
+          throw new Error(data.error || data.message || `API error ${response.status}`);
+        }
+
+        return data;
+      } catch (err) {
+        lastError = err;
+        // If it was a logical API error from server (with status and error message), throw immediately
+        if (err.message && !err.message.includes('fetch') && !err.message.includes('NetworkError') && !err.message.includes('Failed to fetch')) {
+          throw err;
+        }
+      }
     }
+
+    console.error(`[API Error] ${endpoint}:`, lastError ? lastError.message : 'Network error');
+    throw lastError || new Error('Network error: Unable to connect to UniXsport database server.');
   }
 
   // Auth Methods

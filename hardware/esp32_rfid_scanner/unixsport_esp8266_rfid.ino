@@ -26,8 +26,8 @@
 #include <MFRC522.h>
 
 // ================= USER CONFIGURATION ================= //
-const char* WIFI_SSID     = "Hostel_WiFi";        // Enter your local Wi-Fi Name
-const char* WIFI_PASSWORD = "wifi@HostRUSL";    // Enter your Wi-Fi Password
+const char* WIFI_SSID     = "abc";                // Wi-Fi Name / Hotspot
+const char* WIFI_PASSWORD = "12345678";           // Wi-Fi Password
 
 // Cloud Production API (Default - Works over any Wi-Fi / Hotspot)
 const char* SERVER_URL    = "https://unixsport-api.onrender.com/api/rfid/scan";

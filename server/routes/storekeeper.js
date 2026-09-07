@@ -34,6 +34,22 @@ router.get('/dashboard', (req, res) => {
   const availableItems = db.equipment.reduce((sum, e) => sum + e.availableQty, 0);
   const borrowedItems = db.borrowLogs.filter(b => b.status === 'borrowed').length;
   const lowStockItems = db.equipment.filter(e => e.availableQty <= 3);
+  const studentList = (db.users || [])
+    .filter(u => (u.role || '').toLowerCase() === 'student')
+    .map(u => ({
+      id: u.id,
+      user_id: u.user_id || u.userId || '',
+      userId: u.user_id || u.userId || '',
+      regNo: u.regNo || u.username || '',
+      name: u.name,
+      email: u.email,
+      role: 'student',
+      department: u.department || u.faculty || 'General',
+      faculty: u.faculty || u.department || 'General',
+      rfidTag: u.rfidTag || u.rfidCode || '',
+      rfidCode: u.rfidTag || u.rfidCode || '',
+      status: u.status || 'active'
+    }));
 
   res.json({
     success: true,
@@ -42,11 +58,41 @@ router.get('/dashboard', (req, res) => {
       totalEquipmentTypes: db.equipment.length,
       availableItems,
       borrowedItems,
-      lowStockCount: lowStockItems.length
+      lowStockCount: lowStockItems.length,
+      totalStudents: studentList.length
     },
     equipment: db.equipment,
     borrowLogs: db.borrowLogs,
+    students: studentList,
     lowStockAlerts: lowStockItems
+  });
+});
+
+/**
+ * @route   GET /api/storekeeper/students
+ * @desc    Get all student patrons for storekeeper assignment and search
+ */
+router.get('/students', (req, res) => {
+  const studentList = (db.users || [])
+    .filter(u => (u.role || '').toLowerCase() === 'student')
+    .map(u => ({
+      id: u.id,
+      user_id: u.user_id || u.userId || '',
+      userId: u.user_id || u.userId || '',
+      regNo: u.regNo || u.username || '',
+      name: u.name,
+      email: u.email,
+      role: 'student',
+      department: u.department || u.faculty || 'General',
+      faculty: u.faculty || u.department || 'General',
+      rfidTag: u.rfidTag || u.rfidCode || '',
+      rfidCode: u.rfidTag || u.rfidCode || '',
+      status: u.status || 'active'
+    }));
+
+  res.json({
+    success: true,
+    students: studentList
   });
 });
 
