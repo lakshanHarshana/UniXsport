@@ -1132,7 +1132,7 @@ async function loadCoachesDropdown() {
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && data.success && Array.isArray(data.coaches)) {
+                    if (data && data.success && Array.isArray(data.coaches) && data.coaches.length > 0) {
                         coaches = data.coaches;
                         break;
                     }
@@ -1140,19 +1140,34 @@ async function loadCoachesDropdown() {
             } catch(err) {}
         }
 
+        const defaultExistingCoaches = [
+            { id: 'usr_coach1', user_id: 'US005', name: 'Mike', department: 'Physical Education' },
+            { id: 'usr_coach2', user_id: 'US006', name: 'Sarah', department: 'Strength & Conditioning' },
+            { id: 'usr_coach3', user_id: 'US007', name: 'John', department: 'Athletics' }
+        ];
+
+        const listToRender = coaches.length > 0 ? coaches : defaultExistingCoaches;
+
+        // Save previously selected value if any
+        const currentSelected = select.value;
+
         select.innerHTML = '<option value="">Select Coach...</option><option value="Any Coach">Any Coach (First Available)</option>';
 
-        if (coaches.length > 0) {
-            coaches.forEach(c => {
-                const option = document.createElement('option');
-                const coachTitle = `Coach ${c.name}`;
-                option.value = coachTitle;
-                option.setAttribute('data-coach-id', c.id || c.user_id || c.userId || '');
-                option.setAttribute('data-coach-name', c.name || '');
-                option.setAttribute('data-coach-email', c.email || '');
-                option.textContent = `${coachTitle} (${c.department || 'Sports Directorate'})`;
-                select.appendChild(option);
-            });
+        listToRender.forEach(c => {
+            const option = document.createElement('option');
+            const cleanName = String(c.name || '').replace(/^coach\s+/i, '').trim();
+            const coachTitle = `Coach ${cleanName}`;
+            option.value = coachTitle;
+            option.setAttribute('data-coach-id', c.id || c.user_id || c.userId || '');
+            option.setAttribute('data-coach-name', cleanName);
+            option.setAttribute('data-coach-email', c.email || '');
+            option.textContent = `${coachTitle} (${c.department || 'Sports Directorate'})`;
+            select.appendChild(option);
+        });
+
+        // Restore selection if still valid
+        if (currentSelected && select.querySelector(`option[value="${currentSelected}"]`)) {
+            select.value = currentSelected;
         }
     } catch(e) {
         console.warn('Failed to load coaches from database:', e);

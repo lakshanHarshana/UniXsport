@@ -115,6 +115,78 @@
       "profilePhoto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       "createdAt": "2026-09-07T19:31:23.872Z",
       "updatedAt": "2026-09-07T19:38:41.492Z"
+    },
+    {
+      "id": "usr_coach1",
+      "user_id": "US005",
+      "userId": "US005",
+      "regNo": "COACH001",
+      "username": "COACH001",
+      "name": "Mike",
+      "email": "mike@coach.edu",
+      "password": "password123",
+      "passwordHash": "$2a$10$H.qVMWSbY.QpJMPwyxXUKuNpUGmfa3Ml.klagX.WqIDtKTOInrj82",
+      "role": "coach",
+      "rfidTag": "A1B2C3D4",
+      "rfidCode": "COACH001",
+      "department": "Physical Education",
+      "status": "active",
+      "avatarUrl": "",
+      "createdAt": "2026-08-18T05:27:19.821Z"
+    },
+    {
+      "id": "usr_coach2",
+      "user_id": "US006",
+      "userId": "US006",
+      "regNo": "COACH002",
+      "username": "COACH002",
+      "name": "Sarah",
+      "email": "sarah@coach.edu",
+      "password": "password123",
+      "passwordHash": "$2a$10$H.qVMWSbY.QpJMPwyxXUKuNpUGmfa3Ml.klagX.WqIDtKTOInrj82",
+      "role": "coach",
+      "rfidTag": "B2C3D4E5",
+      "rfidCode": "COACH002",
+      "department": "Strength & Conditioning",
+      "status": "active",
+      "avatarUrl": "",
+      "createdAt": "2026-08-18T05:27:19.821Z"
+    },
+    {
+      "id": "usr_coach3",
+      "user_id": "US007",
+      "userId": "US007",
+      "regNo": "COACH003",
+      "username": "COACH003",
+      "name": "John",
+      "email": "john@coach.edu",
+      "password": "password123",
+      "passwordHash": "$2a$10$H.qVMWSbY.QpJMPwyxXUKuNpUGmfa3Ml.klagX.WqIDtKTOInrj82",
+      "role": "coach",
+      "rfidTag": "C3D4E5F6",
+      "rfidCode": "COACH003",
+      "department": "Athletics",
+      "status": "active",
+      "avatarUrl": "",
+      "createdAt": "2026-08-18T05:27:19.821Z"
+    },
+    {
+      "id": "usr_store1",
+      "user_id": "US008",
+      "userId": "US008",
+      "regNo": "STORE001",
+      "username": "STORE001",
+      "name": "Sam Storekeeper",
+      "email": "storekeeper@unixsport.edu",
+      "password": "password123",
+      "passwordHash": "$2a$10$H.qVMWSbY.QpJMPwyxXUKuNpUGmfa3Ml.klagX.WqIDtKTOInrj82",
+      "role": "storekeeper",
+      "rfidTag": "E5F67890",
+      "rfidCode": "STORE001",
+      "department": "Sports Equipment Room",
+      "status": "active",
+      "avatarUrl": "",
+      "createdAt": "2026-08-18T05:27:19.822Z"
     }
   ],
   "equipment": [
@@ -187,6 +259,16 @@
       "creatorRole": "coach",
       "creatorId": "usr_coach_kamal",
       "createdAt": "2026-09-07T20:24:43.610Z"
+    },
+    {
+      "id": "not_1788813595922",
+      "title": "New Gym Schedule Request",
+      "message": "Kasun Bandara submitted a gym schedule request for 2026-10-20 (10:00-12:00)",
+      "priority": "normal",
+      "visibleTo": "US006",
+      "targetCoachId": "US006",
+      "createdBy": "System",
+      "createdAt": "2026-09-07T20:39:55.922Z"
     }
   ],
   "facilities": [
@@ -365,7 +447,7 @@
     "lastCleaned": "2026-09-07T15:35:49.692Z",
     "version": "1.0.0-clean",
     "system": "UniXsport University Management Platform",
-    "lastUserIdSeq": 4
+    "lastUserIdSeq": 8
   },
   "latestRfidScan": null
 }
