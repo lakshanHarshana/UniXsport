@@ -35,6 +35,9 @@
                 }
             }
             checkAuth();
+            setTimeout(() => {
+                document.documentElement.classList.remove('auth-checking');
+            }, 300);
             window.addEventListener('pageshow', checkAuth);
             window.addEventListener('pagehide', function() {
                 document.documentElement.classList.add('auth-checking');

@@ -73,7 +73,7 @@ async function fetchStudentAPI(endpoint, options = {}) {
     throw lastError || new Error('Network error: Unable to reach backend server.');
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+function initUniXsportStudentApp() {
     const safeExec = (fn, name) => {
         try {
             if (typeof fn === 'function') fn();
@@ -103,12 +103,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. Dynamic Data & Profile
     safeExec(loadProfileFromStorage, 'loadProfileFromStorage');
     safeExec(initDynamicWorkoutPlan, 'initDynamicWorkoutPlan');
-    try { await initMySchedule(); } catch(e) { console.warn(e); }
-    safeExec(loadEquipmentAvailability, 'loadEquipmentAvailability');
-    safeExec(loadBorrowHistory, 'loadBorrowHistory');
-    safeExec(updateStudentDashboardStats, 'updateStudentDashboardStats');
-    safeExec(initStudentAutoRefresh, 'initStudentAutoRefresh');
-});
+    (async () => {
+        try { await initMySchedule(); } catch(e) { console.warn(e); }
+        safeExec(loadEquipmentAvailability, 'loadEquipmentAvailability');
+        safeExec(loadBorrowHistory, 'loadBorrowHistory');
+        safeExec(updateStudentDashboardStats, 'updateStudentDashboardStats');
+        safeExec(initStudentAutoRefresh, 'initStudentAutoRefresh');
+    })();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUniXsportStudentApp);
+} else {
+    // DOM is already ready, initialize immediately
+    initUniXsportStudentApp();
+}
 
 // ========== Automatic Live Data Refresh ==========
 let studentRefreshInterval = null;
