@@ -6,7 +6,7 @@
       "username": "admin",
       "name": "System Administrator",
       "email": "admin@unixsport.edu",
-      "passwordHash": "$2a$10$SfawQmX8yc6dJz6d6bwUouc0B3EBXQslJD6/uZSOEEmpDDu1hfEbi",
+      "passwordHash": "$2a$10$Awcm.4XjvxMlp2.CJ1ldEufhFdF9OzS1.1ZgVEbCrjNp3a5mFppHS",
       "role": "admin",
       "rfidTag": "ADMIN_RFID_99",
       "department": "Sports Directorate",
@@ -202,6 +202,12 @@
       "userId": "usr_1788807308169_og9mc",
       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA3MzA4MTY5X29nOW1jIiwidXNlcl9pZCI6IlVTMDAyIiwidXNlcklkIjoiVVMwMDIiLCJyZWdObyI6IklUVC8yMDIzLzA5OSIsIm5hbWUiOiJLYXN1biBCYW5kYXJhIiwiZW1haWwiOiJrYXN1bi5iQHJqdC5hYy5sayIsInJvbGUiOiJzdHVkZW50IiwiZGVwYXJ0bWVudCI6IkZhY3VsdHkgb2YgVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDczMDgsImV4cCI6MTc4ODg5MzcwOH0.IyM3ii2FgSkr4Jz55Iwob0kI3ZpLF6Qwl_9k2VvNk24",
       "loggedInAt": "2026-09-07T18:55:08.369Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_admin",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl9hZG1pbiIsInVzZXJfaWQiOiJVUzAwMSIsInVzZXJJZCI6IlVTMDAxIiwicmVnTm8iOiJhZG1pbiIsIm5hbWUiOiJTeXN0ZW0gQWRtaW5pc3RyYXRvciIsImVtYWlsIjoiYWRtaW5AdW5peHNwb3J0LmVkdSIsInJvbGUiOiJhZG1pbiIsImRlcGFydG1lbnQiOiJTcG9ydHMgRGlyZWN0b3JhdGUiLCJyZmlkVGFnIjoiQURNSU5fUkZJRF85OSIsImlhdCI6MTc4ODgwODEyMCwiZXhwIjoxNzg4ODk0NTIwfQ.AKX_knV0WoQDbEVOfJYScN4dfATr2PYqpsENZDgu1js",
+      "loggedInAt": "2026-09-07T19:08:40.359Z",
       "revoked": false
     }
   ],
