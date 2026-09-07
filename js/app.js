@@ -12,6 +12,8 @@ function getUniXsportToken() {
            localStorage.getItem('unixsport_jwt_token') ||
            localStorage.getItem('token') ||
            '';
+}
+
 function getStudentApiBase() {
     if (typeof window !== 'undefined' && window.UniXsportAPI && typeof window.UniXsportAPI.getBaseUrl === 'function') {
         return window.UniXsportAPI.getBaseUrl();
