@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Test - UniXsport</title>
+    <link rel="stylesheet" href="css/home.css">
+    <style>
+        body { margin-top: 80px; }
+        .test-hero {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(17, 24, 39, 0.96) 40%, rgb(14 165 233 / 83%) 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin: 20px;
+            min-height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSS Gradient Test</h1>
+    
+    <div class="test-hero">
+        <h2>Test Gradient (Inline Style)</h2>
+        <p>This should show blue gradient at the right side (83% opacity)</p>
+    </div>
+
+    <div class="hero-section">
+        <h2>Test Gradient (From home.css)</h2>
+        <p>This is using the .hero-section class from home.css</p>
+    </div>
+
+    <hr>
+    <p style="margin: 20px; font-family: monospace; font-size: 12px;">
+        If both gradients show blue on the right, then the CSS is loading correctly.<br>
+        If only the first one shows blue, then home.css might not be loading or cached.
+    </p>
+</body>
+</html>

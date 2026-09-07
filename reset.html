@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <script>
+        (function() {
+            if (localStorage.getItem('darkMode') === 'disabled') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniXsport - Reset Password</title>
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+        <div class="logo">
+            <img src="rajarata-logo.png" alt="Rajarata University Logo" class="university-logo">
+            <div class="logo-text">
+                <span class="brand-name">UniXsport</span>
+                <span class="univ-tag">Rajarata University of Sri Lanka</span>
+            </div>
+        </div>
+        <div class="navbar-right">
+            <button class="icon-btn active" id="darkModeToggle" aria-label="Toggle dark mode" title="Dark Mode">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section class="login-section">
+            <div class="reset-card">
+                <h1>Reset Password</h1>
+                <p class="reset-instruction" id="resetInstruction">Enter your account email and we'll send a secure link to reset your password.</p>
+
+                <div id="requestArea">
+                    <form id="requestResetForm">
+                        <div class="form-group">
+                            <label for="email">Email address</label>
+                            <input type="text" id="email" placeholder="you@example.com" required>
+                        </div>
+                        <div class="reset-actions">
+                            <button type="submit" class="btn btn-primary">Send Reset Link</button>
+                            <a href="login.html" class="btn btn-outline">Back to Sign In</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="verifyArea" style="display:none;margin-top:12px;">
+                    <form id="verifyCodeForm">
+                        <div class="form-group">
+                            <label for="verificationCode">6-Character Verification Code</label>
+                            <input type="text" id="verificationCode" placeholder="Enter code (e.g. XF97B2)" maxlength="6" required style="text-transform: uppercase; letter-spacing: 2px; text-align: center; font-size: 1.25rem;">
+                        </div>
+                        <div style="display:flex;gap:12px;align-items:center;">
+                            <button type="submit" class="btn btn-primary">Verify Code</button>
+                            <button type="button" id="resendCodeBtn" class="btn btn-outline">Resend Code</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="setArea" style="display:none;margin-top:12px;">
+                    <form id="setPasswordForm">
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" id="newPassword" placeholder="New password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input type="password" id="confirmPassword" placeholder="Confirm password" required>
+                        </div>
+                        <div style="display:flex;gap:12px;align-items:center;">
+                            <button type="submit" class="btn btn-primary">Set New Password</button>
+                            <a href="login.html" class="btn btn-outline">Cancel</a>
+                        </div>
+                        <div id="setSuccess" style="display:none;margin-top:12px;" class="reset-success"></div>
+                    </form>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/reset.js"></script>
+</body>
+</html>

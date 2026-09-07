@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <script>
+        (function() {
+            if (localStorage.getItem('darkMode') === 'disabled') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniXsport - Student Sign Up</title>
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .signup-card {
+            width: 500px;
+            max-width: 96%;
+            background: linear-gradient(180deg, white 0%, rgba(248, 250, 252, 0.5) 100%);
+            border-radius: 16px;
+            padding: 28px 32px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--gray-200);
+            text-align: left;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .signup-card:hover {
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border-color: var(--gray-300);
+            transform: translateY(-2px);
+        }
+        
+        .signup-card h1 {
+            margin: 0 0 4px;
+            font-size: 1.6rem;
+            background: linear-gradient(135deg, var(--gray-900) 0%, var(--gray-700) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .signup-card p.subtitle {
+            color: var(--gray-500);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .signup-card .form-group {
+            margin-bottom: 14px;
+        }
+
+        .signup-card label {
+            display: block;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+            font-size: 0.88rem;
+            letter-spacing: 0.3px;
+        }
+
+        .signup-card input[type="text"],
+        .signup-card input[type="email"],
+        .signup-card input[type="password"],
+        .signup-card select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 0.92rem;
+            color: var(--gray-800);
+            background: linear-gradient(135deg, rgba(248,250,252,0.6), rgba(241,245,249,0.6));
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+        }
+
+        .signup-card select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 36px;
+            cursor: pointer;
+        }
+
+        .signup-card input:hover,
+        .signup-card select:hover {
+            border-color: var(--gray-300);
+            background: linear-gradient(135deg, rgba(241,245,249,0.8), rgba(226,232,240,0.8));
+        }
+
+        .signup-card input:focus,
+        .signup-card select:focus {
+            outline: none;
+            border-color: var(--gray-600);
+            box-shadow: 0 0 0 3px rgba(71,85,105,0.1), inset 0 0 0 1px rgba(71,85,105,0.05);
+            background: white;
+        }
+
+        .signup-card .btn {
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .signup-footer {
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .signup-footer a {
+            color: var(--gray-600);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .signup-footer a:hover {
+            color: var(--gray-700);
+        }
+
+        @media (max-width: 580px) {
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            .signup-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+        <div class="logo">
+            <img src="rajarata-logo.png" alt="Rajarata University Logo" class="university-logo">
+            <div class="logo-text">
+                <span class="brand-name">UniXsport</span>
+                <span class="univ-tag">Rajarata University of Sri Lanka</span>
+            </div>
+        </div>
+        <div class="navbar-right">
+            <button class="icon-btn active" id="darkModeToggle" aria-label="Toggle dark mode" title="Dark Mode">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <section class="login-section">
+            <div class="signup-card">
+                <h1>Student Sign Up</h1>
+               
+                
+                <form id="signupForm">
+                    <div class="form-group">
+                        <label for="fullName"><i class="fas fa-user text-blue"></i> Full Name</label>
+                        <input type="text" id="fullName" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="regNo"><i class="fas fa-id-card text-blue"></i> Student Registration No</label>
+                            <input type="text" id="regNo" placeholder="e.g., ITT/2023/086" required style="text-transform: uppercase;">
+                        </div>
+                        <div class="form-group">
+                            <label for="faculty"><i class="fas fa-university text-blue"></i> Faculty</label>
+                            <select id="faculty" required>
+                                <option value="" disabled selected>Select your Faculty</option>
+                                <option value="Applied Sciences">Faculty of Applied Sciences</option>
+                                <option value="Technology">Faculty of Technology</option>
+                                <option value="Management Studies">Faculty of Management Studies</option>
+                                <option value="Social Sciences & Humanities">Faculty of Social Sciences & Humanities</option>
+                                <option value="Agriculture">Faculty of Agriculture</option>
+                                <option value="Medicine & Allied Sciences">Faculty of Medicine & Allied Sciences</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email"><i class="fas fa-envelope text-blue"></i> Email Address</label>
+                        <input type="email" id="email" placeholder="e.g., student@rjt.ac.lk or name@gmail.com" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password"><i class="fas fa-lock text-blue"></i> Password</label>
+                            <input type="password" id="password" placeholder="Min 6 characters" minlength="6" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword"><i class="fas fa-lock text-blue"></i> Confirm Password</label>
+                            <input type="password" id="confirmPassword" placeholder="Confirm password" minlength="6" required>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:12px;align-items:center;margin-top:20px;">
+                        <button type="submit" class="btn btn-primary">Create Profile</button>
+                        <a href="login.html?role=student" class="btn btn-outline">Back to Sign In</a>
+                    </div>
+
+                    <div class="signup-footer">
+                        <p>By signing up you agree to represent Rajarata University sports guidelines and uphold varsity sportsmanship standards.</p>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/signup.js"></script>
+</body>
+</html>

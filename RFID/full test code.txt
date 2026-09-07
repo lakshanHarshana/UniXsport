@@ -1,0 +1,166 @@
+#include <SPI.h>
+#include <MFRC522.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// ============================================================
+// UniXsport ESP32 Direct USB Serial RFID Counter Terminal
+// Rajarata University of Sri Lanka (Zero Network / Zero Wi-Fi Needed)
+// ============================================================
+
+// -------------------- RFID Pins ------------------------------
+#define RFID_SS_PIN     5
+#define RFID_RST_PIN    4
+
+#define SPI_SCK         18
+#define SPI_MISO        19
+#define SPI_MOSI        23
+
+// -------------------- LCD Pins -------------------------------
+#define LCD_SDA         21
+#define LCD_SCL         22
+#define LCD_ADDRESS     0x27
+
+// -------------------- Output Pins ----------------------------
+#define GREEN_LED_PIN   25
+#define RED_LED_PIN     26
+#define BUZZER_PIN      27
+
+// -------------------- Objects -------------------------------
+MFRC522 rfid(RFID_SS_PIN, RFID_RST_PIN);
+LiquidCrystal_I2C lcd(LCD_ADDRESS, 16, 2);
+
+void displayStandbyScreen();
+
+void setup()
+{
+  // ---------------- USB Serial ----------------
+  Serial.begin(115200);
+  delay(500);
+
+  Serial.println();
+  Serial.println("================================================");
+  Serial.println("   UniXsport ESP32 USB RFID TERMINAL SYSTEM");
+  Serial.println("   Rajarata University of Sri Lanka");
+  Serial.println("================================================");
+  Serial.println();
+
+  // ---------------- Output pins ----------------
+  pinMode(GREEN_LED_PIN, OUTPUT);
+  pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  digitalWrite(GREEN_LED_PIN, LOW);
+  digitalWrite(RED_LED_PIN, LOW);
+  digitalWrite(BUZZER_PIN, LOW);
+
+  // ---------------- LCD --------------------
+  Wire.begin(LCD_SDA, LCD_SCL);
+  lcd.init();
+  lcd.backlight();
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(" UniXsport USB  ");
+  lcd.setCursor(0, 1);
+  lcd.print(" Starting...    ");
+
+  delay(800);
+
+  // ---------------- SPI / RFID -------------
+  SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, RFID_SS_PIN);
+  rfid.PCD_Init();
+  delay(100);
+
+  byte version = rfid.PCD_ReadRegister(MFRC522::VersionReg);
+  if (version == 0x00 || version == 0xFF)
+  {
+    Serial.println("ERROR: MFRC522 Hardware Not Detected!");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("RFID HARDWARE ERR");
+    lcd.setCursor(0, 1);
+    lcd.print("Check Wiring!");
+
+    for (int i = 0; i < 5; i++)
+    {
+      digitalWrite(RED_LED_PIN, HIGH);
+      tone(BUZZER_PIN, 1000);
+      delay(200);
+      digitalWrite(RED_LED_PIN, LOW);
+      noTone(BUZZER_PIN);
+      delay(200);
+    }
+    return;
+  }
+
+  // Startup Sound
+  tone(BUZZER_PIN, 1800);
+  delay(120);
+  tone(BUZZER_PIN, 2300);
+  delay(150);
+  noTone(BUZZER_PIN);
+
+  displayStandbyScreen();
+
+  Serial.println("================================================");
+  Serial.println("USB HARDWARE READY. PLUG VIA USB & SWIPE CARD!");
+  Serial.println("================================================");
+}
+
+void loop()
+{
+  // Check for RFID card
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial())
+  {
+    delay(20);
+    return;
+  }
+
+  // Build RFID UID String
+  String cardUID = "";
+  for (byte i = 0; i < rfid.uid.size; i++)
+  {
+    if (rfid.uid.uidByte[i] < 0x10)
+    {
+      cardUID += "0";
+    }
+    cardUID += String(rfid.uid.uidByte[i], HEX);
+  }
+  cardUID.toUpperCase();
+
+  // Print over USB Cable directly to Website
+  Serial.println("SCANNED RFID UID: " + cardUID);
+
+  // LCD Display
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("CARD SCANNED!");
+  lcd.setCursor(0, 1);
+  lcd.print(cardUID);
+
+  // Green LED & Buzzer Feedback
+  digitalWrite(GREEN_LED_PIN, HIGH);
+  tone(BUZZER_PIN, 2200);
+  delay(150);
+  noTone(BUZZER_PIN);
+
+  // Halt RFID
+  rfid.PICC_HaltA();
+  rfid.PCD_StopCrypto1();
+
+  delay(1200);
+
+  digitalWrite(GREEN_LED_PIN, LOW);
+  displayStandbyScreen();
+  delay(200);
+}
+
+void displayStandbyScreen()
+{
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(" UniXsport RFID ");
+  lcd.setCursor(0, 1);
+  lcd.print("USB Ready: Swipe");
+}

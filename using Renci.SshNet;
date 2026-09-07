@@ -1,0 +1,25 @@
+using Renci.SshNet;
+
+// 1. Define server details
+string host = "161.118.192.164";
+string username = "root"; // Or your specific username
+string password = "ruslcod4";
+
+// 2. Establish connection
+using (var client = new SshClient(host, username, password))
+{
+    Console.WriteLine("Connecting to server...");
+    client.Connect();
+    Console.WriteLine("Connected successfully!");
+
+    // 3. Run your command
+    var command = client.RunCommand("uname -a");
+    
+    // 4. Output the result
+    Console.WriteLine("Server Response:");
+    Console.WriteLine(command.Result);
+
+    // 5. Clean up
+    client.Disconnect();
+    Console.WriteLine("Disconnected.");
+}

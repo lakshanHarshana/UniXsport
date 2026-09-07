@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en" class="auth-checking" data-theme="dark">
+<head>
+    <style>
+        html.auth-checking body {
+            display: none !important;
+        }
+    </style>
+    <script>
+        (function() {
+            // Early dark mode check
+            if (localStorage.getItem('darkMode') === 'disabled') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+
+            function checkAuth() {
+                const tabToken = sessionStorage.getItem('unixsport_token_storekeeper') || sessionStorage.getItem('unixsport_jwt_token') || sessionStorage.getItem('token');
+                const tabRole = (sessionStorage.getItem('userRole') || '').toLowerCase();
+                const roleToken = localStorage.getItem('unixsport_token_storekeeper');
+                const roleUser = localStorage.getItem('unixsport_user_storekeeper');
+                const legacyRole = (localStorage.getItem('userRole') || '').toLowerCase();
+                const legacyToken = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
+
+                const isValidStorekeeper = (tabToken && tabRole === 'storekeeper') ||
+                                           roleToken ||
+                                           roleUser ||
+                                           (legacyRole === 'storekeeper' && legacyToken);
+
+                if (!isValidStorekeeper) {
+                    window.location.replace('login.html?role=storekeeper');
+                } else {
+                    document.documentElement.classList.remove('auth-checking');
+                }
+            }
+            checkAuth();
+            window.addEventListener('pageshow', checkAuth);
+            window.addEventListener('pagehide', function() {
+                document.documentElement.classList.add('auth-checking');
+            });
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniXsport - Storekeeper Dashboard</title>
+    <link rel="stylesheet" href="css/storekeeper.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="logo">
+            <img src="rajarata-logo.png" alt="Rajarata University Logo" class="university-logo">
+            <div class="logo-text">
+                <span class="brand-name">UniXsport Store</span>
+                <span class="univ-tag">Rajarata University of Sri Lanka</span>
+            </div>
+        </div>
+        <div class="navbar-right">
+            <button class="icon-btn active" id="darkModeToggle" aria-label="Toggle dark mode" title="Dark Mode">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="notification-dropdown">
+                <button class="icon-btn" id="notificationBtn" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notificationBadge" style="display: none;">0</span>
+                </button>
+                <div class="notification-panel" id="notificationPanel">
+                    <h4>Notifications</h4>
+                    <div class="notification-item" style="padding: 12px; color: var(--gray-500); text-align: center;">
+                        <i class="fas fa-bell-slash" style="margin-right: 6px;"></i>
+                        <span>No new notifications</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-outline logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> <span class="btn-text">Logout</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link active" data-page="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-link" data-page="rfid-scan">
+                <i class="fas fa-qrcode"></i>
+                <span>RFID Scan / Take & Return</span>
+            </a>
+            <a href="#" class="nav-link" data-page="stock-management">
+                <i class="fas fa-boxes-stacked"></i>
+                <span>Equipment Stock Management</span>
+            </a>
+            <a href="#" class="nav-link" data-page="rfid-assignment">
+                <i class="fas fa-id-card"></i>
+                <span>RFID Tag Assignment</span>
+            </a>
+            <a href="#" class="nav-link" data-page="borrow-history">
+                <i class="fas fa-history"></i>
+                <span>Borrow History</span>
+            </a>
+            <a href="#" class="nav-link" data-page="notices">
+                <i class="fas fa-bullhorn"></i>
+                <span>Notices & Broadcasts</span>
+            </a>
+            <a href="#" class="nav-link" data-page="monthly-report">
+                <i class="fas fa-file-pdf"></i>
+                <span>Generate Monthly Report</span>
+            </a>
+            <a href="#" class="nav-link logout-link" id="sidebarLogout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Page -->
+        <section id="page-dashboard" class="page active">
+            <h1 class="page-title">Storekeeper Dashboard</h1>
+            <p class="subtitle" style="color: var(--gray-500); margin-bottom: 20px;">Overview of sports equipment inventory and active issue logs</p>
+
+            <div class="dashboard-cards">
+                <div class="card card-stat">
+                    <div class="card-icon icon-blue"><i class="fas fa-boxes-stacked"></i></div>
+                    <div class="card-info">
+                        <span class="card-label">Total Equipment Categories</span>
+                        <h2 class="card-value" id="statTotalItems">0</h2>
+                    </div>
+                </div>
+                <div class="card card-stat">
+                    <div class="card-icon icon-green"><i class="fas fa-hand-holding"></i></div>
+                    <div class="card-info">
+                        <span class="card-label">Currently Issued Items</span>
+                        <h2 class="card-value" id="statBorrowedItems">0</h2>
+                    </div>
+                </div>
+                <div class="card card-stat">
+                    <div class="card-icon icon-orange"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="card-info">
+                        <span class="card-label">Low Stock Alerts</span>
+                        <h2 class="card-value" id="statLowStock">0</h2>
+                    </div>
+                </div>
+                <div class="card card-stat">
+                    <div class="card-icon icon-red"><i class="fas fa-tools"></i></div>
+                    <div class="card-info">
+                        <span class="card-label">Damaged / Under Repair</span>
+                        <h2 class="card-value" id="statDamagedItems">0</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Cards -->
+            <div class="dashboard-grid" style="margin-top: 24px;">
+                <div class="card">
+                    <div class="card-title-bar">
+                        <h3><i class="fas fa-bolt text-blue"></i> Quick Terminal Operations</h3>
+                    </div>
+                    <div class="quick-actions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px;">
+                        <button class="btn btn-outline" onclick="document.querySelector('[data-page=rfid-scan]').click()" style="padding: 14px; text-align: left; display: flex; flex-direction: column; gap: 6px;">
+                            <i class="fas fa-qrcode text-blue" style="font-size: 1.4rem;"></i>
+                            <strong>Take & Return Equipment</strong>
+                            <span style="font-size: 0.75rem; color: var(--gray-500);">Process equipment checkout & returns</span>
+                        </button>
+                        <button class="btn btn-outline" onclick="document.querySelector('[data-page=stock-management]').click()" style="padding: 14px; text-align: left; display: flex; flex-direction: column; gap: 6px;">
+                            <i class="fas fa-boxes-stacked text-orange" style="font-size: 1.4rem;"></i>
+                            <strong>Manage Stock</strong>
+                            <span style="font-size: 0.75rem; color: var(--gray-500);">Add & update gear inventory</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Take & Return Equipment Page -->
+        <section id="page-rfid-scan" class="page">
+            <div class="terminal-header">
+                <div>
+                    <h1 class="page-title" style="margin-bottom: 4px;">Take & Return Equipment</h1>
+                    <p class="subtitle" style="color: var(--gray-500); font-size: 0.95rem;">Search student by ID or RFID card swipe to issue and return sports gear</p>
+                </div>
+            </div>
+
+            <!-- Terminal Workdesk Layout (2 Columns) -->
+            <div class="terminal-grid">
+                
+                <!-- Left Column: Student Identification -->
+                <div class="terminal-card student-card-panel">
+                    <div class="card-title-bar">
+                        <h3><i class="fas fa-id-card text-blue"></i> Student Identification</h3>
+                        <span class="step-pill">Step 1</span>
+                    </div>
+
+                    <!-- Search / Scan Bar -->
+                    <div class="scan-bar-container">
+                        <div class="scan-input-wrapper">
+                            <i class="fas fa-rss scan-icon-pulse"></i>
+                            <input type="text" id="terminalStudentSearch" placeholder="Swipe RFID Card or type Student ID (e.g., STU001)..." autocomplete="off">
+                            <button class="btn btn-primary" id="btnLookupStudent">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selected Student Display -->
+                    <div class="student-profile-view" id="studentProfileView">
+                        <div class="profile-avatar-circle">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div class="profile-info-details" style="flex: 1;">
+                            <h2 id="activeStudentName" style="margin-bottom: 6px;">No Student Selected</h2>
+                            <div class="student-meta-details" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.88rem; margin: 8px 0; color: var(--gray-700);">
+                                <div><i class="fas fa-fingerprint text-blue" style="width: 14px;"></i> User ID: <strong id="activeStudentUserId" style="color: var(--blue); font-family: monospace;">--</strong></div>
+                                <div><i class="fas fa-id-card text-blue" style="width: 14px;"></i> Reg No: <strong id="activeStudentReg">--</strong></div>
+                                <div><i class="fas fa-envelope text-blue" style="width: 14px;"></i> Email: <strong id="activeStudentEmail">--</strong></div>
+                                <div><i class="fas fa-qrcode text-blue" style="width: 14px;"></i> RFID Code: <strong id="activeStudentRfid" style="font-family: monospace;">--</strong></div>
+                            </div>
+                            <div class="profile-meta-badges" style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
+                                <span class="badge badge-dept" id="activeStudentDept">--</span>
+                                <span class="badge badge-status" id="activeStudentStatus">Please Search / Swipe Card</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Equipment Checkout & Issue Cart -->
+                <div class="terminal-card equipment-card-panel">
+                    <div class="card-title-bar">
+                        <h3><i class="fas fa-boxes-stacked text-orange"></i> Issue Equipment Gear</h3>
+                        <span class="step-pill orange">Step 2</span>
+                    </div>
+
+                    <!-- Equipment Picker Form -->
+                    <div class="equipment-select-form">
+                        <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 12px;">
+                            <div class="form-group" style="flex: 2;">
+                                <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Select Equipment Category</label>
+                                <select id="terminalEquipmentSelect" class="form-control" style="width: 100%; padding: 10px; border-radius: var(--radius); border: 1px solid var(--gray-300);">
+                                    <option value="">-- Choose Equipment Item --</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem;">Quantity</label>
+                                <div class="stepper-input" style="display: flex; align-items: center; border: 1px solid var(--gray-300); border-radius: var(--radius); overflow: hidden;">
+                                    <button type="button" class="stepper-btn" id="btnQtyMinus" style="width: 36px; height: 38px; background: var(--gray-100); border: none; font-weight: 700; cursor: pointer;">-</button>
+                                    <input type="number" id="terminalQtyInput" value="1" min="1" max="50" style="width: 100%; text-align: center; border: none; font-weight: 600;">
+                                    <button type="button" class="stepper-btn" id="btnQtyPlus" style="width: 36px; height: 38px; background: var(--gray-100); border: none; font-weight: 700; cursor: pointer;">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-success btn-block" id="btnAddItemToCart" style="width: 100%; padding: 12px; font-weight: 600;">
+                            <i class="fas fa-cart-plus"></i> Add Item to Issue Cart
+                        </button>
+                    </div>
+
+                    <!-- Active Session Issue Cart Table -->
+                    <div class="issue-cart-box" style="margin-top: 16px;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 8px;"><i class="fas fa-shopping-basket"></i> Active Issue List</h4>
+                        <div class="cart-table-wrapper" style="max-height: 180px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius);">
+                            <table class="cart-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                <thead>
+                                    <tr style="background: var(--gray-100); text-align: left;">
+                                        <th style="padding: 8px 12px;">Item Name</th>
+                                        <th style="padding: 8px 12px;">Qty</th>
+                                        <th style="padding: 8px 12px;">Available</th>
+                                        <th style="padding: 8px 12px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cartTableBody">
+                                    <!-- Cart rows populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Final Action Buttons -->
+                    <div class="terminal-action-footer" style="margin-top: 16px; display: flex; gap: 12px;">
+                        <button type="button" class="btn btn-outline" id="btnResetCart" style="flex: 1;">
+                            <i class="fas fa-trash-alt"></i> Clear Cart
+                        </button>
+                        <button type="button" class="btn btn-primary btn-lg" id="btnCompleteIssue" style="flex: 2; font-weight: 700;">
+                            <i class="fas fa-check-circle"></i> Complete Checkout
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Return Equipment Gear Panel -->
+                <div class="terminal-card return-card-panel" id="returnEquipmentPanel" style="grid-column: 1 / -1; margin-top: 10px;">
+                    <div class="card-title-bar">
+                        <h3><i class="fas fa-undo-alt text-green" style="color: #10b981;"></i> Return Equipment Gear</h3>
+                        <span class="step-pill green" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">Step 3</span>
+                    </div>
+
+                    <div class="return-equipment-box">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4 style="font-size: 0.95rem; margin: 0; color: var(--gray-700);">
+                                <i class="fas fa-list-check" style="color: #10b981;"></i> Currently Borrowed Equipment
+                            </h4>
+                            <span id="returnActiveCountBadge" class="badge badge-info" style="font-size: 0.8rem; background: rgba(6, 182, 212, 0.15); color: #06b6d4; padding: 3px 8px; border-radius: 12px;">0 items</span>
+                        </div>
+
+                        <div class="return-table-wrapper" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius);">
+                            <table class="return-table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                <thead>
+                                    <tr style="background: var(--gray-100); text-align: left;">
+                                        <th style="padding: 10px 12px;">Equipment</th>
+                                        <th style="padding: 10px 12px; text-align: center;">Borrowed Qty</th>
+                                        <th style="padding: 10px 12px; text-align: center;">Return Qty</th>
+                                        <th style="padding: 10px 12px; text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="returnTableBody">
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; padding: 24px; color: var(--gray-500);">
+                                            <i class="fas fa-user-clock" style="font-size: 1.6rem; margin-bottom: 6px; display: block; opacity: 0.5;"></i>
+                                            Please scan/search a student to view borrowed equipment.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Interactive ESP32 RFID Hardware Status Card -->
+            <div class="terminal-card hardware-status-card" id="esp32HardwareCard" style="margin-top: 20px; padding: 20px; border-radius: var(--radius-lg); border: 2px solid rgba(239, 68, 68, 0.4); transition: all 0.35s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div class="hardware-icon-box" id="hardwareIconBox" style="width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: rgba(239, 68, 68, 0.12); color: #ef4444; flex-shrink: 0;">
+                            <i class="fas fa-plug-circle-xmark" id="hardwareIcon"></i>
+                        </div>
+                        <div>
+                            <h3 id="hardwareStatusTitle" style="font-size: 1.15rem; margin-bottom: 4px; font-weight: 700; color: #ef4444;">🔴 RFID Scanner is Offline</h3>
+                            <p id="hardwareStatusDesc" style="font-size: 0.88rem; color: var(--gray-500); margin: 0;">ESP32 USB cable disconnected. Plug in USB cable to activate hardware scanner.</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <button type="button" class="btn btn-primary" id="btnConnectHardwareUsb" style="padding: 8px 18px; font-size: 0.9rem; font-weight: 600;">
+                            <i class="fas fa-plug"></i> Connect USB Scanner
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RFID Tag Assignment Page -->
+        <section id="page-rfid-assignment" class="page">
+            <div class="terminal-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h1 class="page-title" style="margin-bottom: 4px;">RFID Tag Assignment</h1>
+                    <p class="subtitle" style="color: var(--gray-500); font-size: 0.95rem;">Assign physical RFID tags to students and equipment</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div id="rfidAssignmentScannerStatusBadge" class="badge" style="padding: 8px 14px; font-size: 0.88rem; font-weight: 600; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25);">
+                        <i class="fas fa-wifi"></i> <span id="rfidAssignmentScannerStatusText">🔴 Scanner Disconnected</span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" id="btnConnectRfidScanner" style="padding: 8px 12px; font-size: 0.85rem;">
+                        <i class="fas fa-plug text-blue"></i> Connect Scanner
+                    </button>
+                </div>
+            </div>
+
+            <!-- Assignment Type Tabs -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; max-width: 680px; margin-left: auto; margin-right: auto;">
+                <button type="button" id="tabBtnStudent" onclick="switchAssignTab('student');"
+                    style="flex: 1; padding: 10px 16px; font-weight: 700; font-size: 0.92rem; border-radius: var(--radius); border: 2px solid var(--blue); background: var(--blue); color: #fff; cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-user-graduate"></i> Student Assignment
+                </button>
+                <button type="button" id="tabBtnEquipment" onclick="switchAssignTab('equipment');"
+                    style="flex: 1; padding: 10px 16px; font-weight: 700; font-size: 0.92rem; border-radius: var(--radius); border: 2px solid var(--blue); background: transparent; color: var(--blue); cursor: pointer; transition: all 0.2s;">
+                    <i class="fas fa-volleyball-ball"></i> Equipment Assignment
+                </button>
+            </div>
+
+            <!-- Student RFID Assignment Card -->
+            <div id="assignStudentPanel" class="assign-tab-panel active" style="max-width: 680px; margin: 0 auto;">
+                <div class="terminal-card" style="box-shadow: 0 4px 14px rgba(0,0,0,0.06); border-radius: var(--radius-lg);">
+                    <div class="card-title-bar">
+                        <h3><i class="fas fa-id-card text-blue"></i> Student RFID Tag Assignment</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 15px;">
+                        <!-- SECTION 1: Student Verification -->
+                        <div class="form-group">
+                            <label style="font-weight: 700; font-size: 0.95rem; display: block; margin-bottom: 8px; color: var(--gray-900);">
+                                Section 1: Student Verification
+                            </label>
+                            <label style="font-size: 0.85rem; color: var(--gray-600); display: block; margin-bottom: 6px;">User ID:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="assignStudentSearchInput" class="form-control" placeholder="Enter User ID (e.g. US002)..." style="flex: 1; padding: 10px;" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();performStudentSearch(true);}">
+                                <button type="button" class="btn btn-primary" id="btnSearchAssignStudent" onclick="performStudentSearch(true);" style="padding: 10px 18px; font-weight: 600; white-space: nowrap;">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Unregistered Error Message Box -->
+                        <div id="studentNotFoundErrorBox" style="display: none; padding: 14px; border-radius: var(--radius); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); color: #dc2626; font-size: 0.88rem;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 1.3rem; margin-top: 2px;"></i>
+                                <div style="flex: 1;">
+                                    <strong style="display: block; margin-bottom: 4px; font-size: 0.95rem;" id="notFoundErrorTitle">Student Not Found</strong>
+                                    <p id="notFoundErrorText" style="margin: 0; color: var(--gray-700); line-height: 1.4;">Please enter a valid User ID.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2: Student Information -->
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label class="section-heading-label" style="font-weight: 700; font-size: 0.95rem; color: var(--gray-900); margin: 0;">
+                                    Section 2: Student Information
+                                </label>
+                                <span id="verifiedStudentStatusBadge" class="badge verified-status-badge" style="background: rgba(100, 116, 139, 0.12); color: #64748b; font-weight: 600; font-size: 0.8rem; padding: 4px 10px;">
+                                    Waiting for Search
+                                </span>
+                            </div>
+                            <div id="verifiedStudentBox" class="student-info-box">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.92rem;">
+                                    <div class="student-info-item">
+                                        <span class="info-label">User ID</span>
+                                        <span id="verifiedStudentId" class="info-value user-id-val">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Full Name</span>
+                                        <span id="verifiedStudentName" class="info-value name-val">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Reg Number</span>
+                                        <span id="verifiedStudentRegNo" class="info-value">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Email Address</span>
+                                        <span id="verifiedStudentEmail" class="info-value" style="word-break: break-all; font-size: 0.88rem;">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Department</span>
+                                        <span id="verifiedStudentDept" class="info-value">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Account Status</span>
+                                        <span id="verifiedStudentStatus" class="info-value">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3: RFID Assignment -->
+                        <div class="form-group" style="margin-top: 5px;">
+                            <label class="section-heading-label" style="font-weight: 700; font-size: 0.95rem; display: block; margin-bottom: 8px; color: var(--gray-900);">
+                                Section 3: RFID Assignment
+                            </label>
+                            <button type="button" class="btn btn-primary btn-lg" id="btnScanStudentRfid" style="width: 100%; padding: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem;" disabled>
+                                <i class="fas fa-qrcode"></i> Scan RFID
+                            </button>
+
+                            <!-- Bound RFID Tag placed after Section 3 -->
+                            <div id="boundRfidTagContainer" class="bound-rfid-container">
+                                <span class="bound-rfid-label">
+                                    <i class="fas fa-id-badge text-blue" style="margin-right: 6px;"></i> Bound RFID Tag:
+                                </span>
+                                <span id="verifiedStudentRfidId" class="badge bound-rfid-badge">
+                                    -
+                                </span>
+                            </div>
+                        </div>
+                        <div id="scannedStudentCardStatus" style="font-size: 0.85rem; color: var(--gray-500); text-align: center; display: none; padding: 6px; background: var(--gray-50); border-radius: var(--radius);">
+                            Last Scanned Card: <strong id="lastScannedStudentCardUid" style="color: var(--blue);">None</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment RFID Assignment Card -->
+            <div id="assignEquipmentPanel" class="assign-tab-panel" style="max-width: 680px; margin: 0 auto; display: none;">
+                <div class="terminal-card" style="box-shadow: 0 4px 14px rgba(0,0,0,0.06); border-radius: var(--radius-lg);">
+                    <div class="card-title-bar">
+                        <h3><i class="fas fa-volleyball-ball text-blue"></i> Equipment RFID Tag Assignment</h3>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 15px;">
+                        <!-- SECTION 1: Equipment Search -->
+                        <div class="form-group">
+                            <label style="font-weight: 700; font-size: 0.95rem; display: block; margin-bottom: 8px; color: var(--gray-900);">
+                                Section 1: Equipment Search
+                            </label>
+                            <label style="font-size: 0.85rem; color: var(--gray-600); display: block; margin-bottom: 6px;">Equipment ID or Name:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="assignEquipmentSearchInput" class="form-control" placeholder="Enter Equipment ID or name (e.g. Cricket Bat)..." style="flex: 1; padding: 10px;" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();performEquipmentSearch(true);}">
+                                <button type="button" class="btn btn-primary" id="btnSearchAssignEquipment" onclick="performEquipmentSearch(true);" style="padding: 10px 18px; font-weight: 600; white-space: nowrap;">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Equipment Not Found Error Box -->
+                        <div id="equipmentNotFoundErrorBox" style="display: none; padding: 14px; border-radius: var(--radius); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); color: #dc2626; font-size: 0.88rem;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 1.3rem; margin-top: 2px;"></i>
+                                <div style="flex: 1;">
+                                    <strong style="display: block; margin-bottom: 4px; font-size: 0.95rem;" id="equipNotFoundErrorTitle">Equipment Not Found</strong>
+                                    <p id="equipNotFoundErrorText" style="margin: 0; color: var(--gray-700); line-height: 1.4;">Please enter a valid Equipment ID or name.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2: Equipment Information -->
+                        <div class="form-group">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label class="section-heading-label" style="font-weight: 700; font-size: 0.95rem; color: var(--gray-900); margin: 0;">
+                                    Section 2: Equipment Information
+                                </label>
+                                <span id="verifiedEquipmentStatusBadge" class="badge verified-status-badge" style="background: rgba(100, 116, 139, 0.12); color: #64748b; font-weight: 600; font-size: 0.8rem; padding: 4px 10px;">
+                                    Waiting for Search
+                                </span>
+                            </div>
+                            <div id="verifiedEquipmentBox" class="student-info-box">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.92rem;">
+                                    <div class="student-info-item">
+                                        <span class="info-label">Equipment ID</span>
+                                        <span id="verifiedEquipmentId" class="info-value user-id-val">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Equipment Name</span>
+                                        <span id="verifiedEquipmentName" class="info-value name-val">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Category</span>
+                                        <span id="verifiedEquipmentCategory" class="info-value">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Location / Room</span>
+                                        <span id="verifiedEquipmentRoom" class="info-value">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Total Qty</span>
+                                        <span id="verifiedEquipmentTotalQty" class="info-value">--</span>
+                                    </div>
+                                    <div class="student-info-item">
+                                        <span class="info-label">Status</span>
+                                        <span id="verifiedEquipmentStatus" class="info-value">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3: RFID Assignment -->
+                        <div class="form-group" style="margin-top: 5px;">
+                            <label class="section-heading-label" style="font-weight: 700; font-size: 0.95rem; display: block; margin-bottom: 8px; color: var(--gray-900);">
+                                Section 3: RFID Assignment
+                            </label>
+                            <button type="button" class="btn btn-primary btn-lg" id="btnScanEquipmentRfid" style="width: 100%; padding: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1rem;" disabled>
+                                <i class="fas fa-qrcode"></i> Scan RFID Tag
+                            </button>
+
+                            <!-- Bound RFID Tag -->
+                            <div id="boundEquipmentRfidTagContainer" class="bound-rfid-container">
+                                <span class="bound-rfid-label">
+                                    <i class="fas fa-tag text-blue" style="margin-right: 6px;"></i> Bound RFID Tag:
+                                </span>
+                                <span id="verifiedEquipmentRfidId" class="badge bound-rfid-badge">
+                                    -
+                                </span>
+                            </div>
+                        </div>
+                        <div id="scannedEquipmentCardStatus" style="font-size: 0.85rem; color: var(--gray-500); text-align: center; display: none; padding: 6px; background: var(--gray-50); border-radius: var(--radius);">
+                            Last Scanned Tag: <strong id="lastScannedEquipmentCardUid" style="color: var(--blue);">None</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Equipment Stock Management Page -->
+        <section id="page-stock-management" class="page">
+            <h1 class="page-title">Equipment Stock Management</h1>
+            <div class="page-controls" style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+                <button type="button" class="btn btn-primary" id="addEquipmentBtn" onclick="openAddEquipmentModal();">
+                    <i class="fas fa-plus"></i> Add Equipment Category
+                </button>
+            </div>
+            <div class="stock-table-container">
+                <table class="stock-table" id="stockTable">
+                    <thead>
+                        <tr>
+                            <th>Category Name</th>
+                            <th>Total Quantity</th>
+                            <th>Damaged Quantity</th>
+                            <th>Available Quantity</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Borrow History Page -->
+        <section id="page-borrow-history" class="page">
+            <h1 class="page-title">Borrow History</h1>
+            <div class="history-table-container">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Equipment Category</th>
+                            <th>Quantity</th>
+                            <th>Issue Date</th>
+                            <th>Return Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Notices & Broadcasts Page -->
+        <section id="page-notices" class="page">
+            <h1 class="page-title">Notices & Broadcast Messages</h1>
+            <p class="subtitle" style="color: var(--gray-500); margin-bottom: 20px;">Official announcements from university sports administration and coaches</p>
+            <div class="notifications-container">
+                <div class="notification-tabs">
+                    <button class="tab-btn active" data-tab="all">All</button>
+                    <button class="tab-btn" data-tab="requests">Pending Requests</button>
+                    <button class="tab-btn" data-tab="low-stock">Low Stock</button>
+                    <button class="tab-btn" data-tab="activity">Activity</button>
+                </div>
+                <div class="notifications-list" id="notificationsList">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Generate Monthly Report Page -->
+        <section id="page-monthly-report" class="page">
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <h1 class="page-title" style="margin-bottom: 4px;">Generate Monthly Report</h1>
+                    <p style="color: var(--gray-600); font-size: 0.92rem; margin: 0;">
+                        Compile and export comprehensive, official monthly equipment borrowing, returns, RFID tracking & inventory reports.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Month Selection & Action Card -->
+            <div class="card report-preview-card">
+                <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; justify-content: space-between;">
+                    <div style="flex: 1; min-width: 260px;">
+                        <label for="reportMonthInput" class="report-month-label">
+                            <i class="fas fa-calendar-alt" style="color: var(--blue); margin-right: 6px;"></i> Select Report Month:
+                        </label>
+                        <input type="month" id="reportMonthInput" class="form-control report-month-input">
+                    </div>
+
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-primary" id="btnGenerateReport" style="padding: 10px 22px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-chart-line"></i> Generate Report
+                        </button>
+                        <button type="button" class="btn btn-success" id="btnDownloadReportPdf" style="padding: 10px 22px; font-weight: 700; display: none; align-items: center; gap: 8px; background: #16a34a; border-color: #16a34a;">
+                            <i class="fas fa-file-pdf"></i> Download PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="reportLoadingContainer" style="display: none; text-align: center; padding: 48px 24px; border-radius: var(--radius-lg); margin-bottom: 24px;">
+                <div class="spinner" style="font-size: 2.2rem; color: var(--blue); margin-bottom: 12px;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--gray-900); margin-bottom: 4px;">Generating Monthly Report...</h3>
+                <p style="font-size: 0.88rem; color: var(--gray-500); margin: 0;">Filtering database records and calculating monthly metrics. Please wait.</p>
+            </div>
+
+            <!-- Report Live Preview Container -->
+            <div id="reportPreviewContainer" style="display: none;">
+                <!-- Header Banner -->
+                <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: white; padding: 24px; border-radius: var(--radius-lg); margin-bottom: 20px; box-shadow: var(--shadow);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <span style="display: inline-block; background: rgba(255,255,255,0.18); padding: 4px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px;">
+                                Official Record
+                            </span>
+                            <h2 id="previewReportTitle" style="font-size: 1.5rem; font-weight: 800; margin: 0 0 6px 0; color: white;">
+                                Monthly Equipment Report: August 2026
+                            </h2>
+                            <p id="previewGeneratedAt" style="margin: 0; font-size: 0.85rem; opacity: 0.9;">
+                                Generated on: 18 August 2026 • UniXsport Storekeeper Module
+                            </p>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.12); backdrop-filter: blur(8px); padding: 12px 18px; border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.2); min-width: 220px;">
+                            <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; opacity: 0.8; margin-bottom: 4px;">Storekeeper Identity</div>
+                            <div id="previewStorekeeperName" style="font-weight: 700; font-size: 0.95rem;">amal</div>
+                            <div id="previewStorekeeperId" style="font-size: 0.8rem; opacity: 0.85;">ID: US004</div>
+                            <div id="previewStorekeeperEmail" style="font-size: 0.8rem; opacity: 0.85;">amal@gmail.com</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 Key Metric Cards -->
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div class="stat-card" style="padding: 18px;">
+                        <div class="stat-icon" style="background: rgba(37, 99, 235, 0.1); color: #2563eb;">
+                            <i class="fas fa-boxes-stacked"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="previewTotalIssued" style="font-size: 1.6rem; font-weight: 800;">0</h3>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--gray-600);">Total Issued Items</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card" style="padding: 18px;">
+                        <div class="stat-icon" style="background: rgba(22, 163, 74, 0.1); color: #16a34a;">
+                            <i class="fas fa-undo"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="previewTotalReturned" style="font-size: 1.6rem; font-weight: 800;">0</h3>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--gray-600);">Total Returned Items</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card" style="padding: 18px;">
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="previewBorrowTx" style="font-size: 1.6rem; font-weight: 800;">0</h3>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--gray-600);">Borrow Transactions</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card" style="padding: 18px;">
+                        <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                            <i class="fas fa-clock-rotate-left"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="previewReturnTx" style="font-size: 1.6rem; font-weight: 800;">0</h3>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--gray-600);">Return Transactions</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Section 1: Live Equipment Availability -->
+                <div class="card report-preview-card">
+                    <h3 class="report-card-heading">
+                        <i class="fas fa-boxes-packing" style="color: var(--blue);"></i> Current Equipment Availability (Live Inventory)
+                    </h3>
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                            <thead>
+                                <tr class="report-table-head-row">
+                                    <th>ID</th>
+                                    <th>Category</th>
+                                    <th>Equipment Name</th>
+                                    <th>Room / Location</th>
+                                    <th style="text-align: center;">Total</th>
+                                    <th style="text-align: center;">Available</th>
+                                    <th style="text-align: center;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewAvailabilityTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Preview Section 2: Borrow / Return History for the Month -->
+                <div class="card report-preview-card">
+                    <h3 class="report-card-heading">
+                        <i class="fas fa-history" style="color: var(--blue);"></i> Borrow & Return Activity for Selected Month
+                    </h3>
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                            <thead>
+                                <tr class="report-table-head-row">
+                                    <th>Date / Time</th>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Equipment</th>
+                                    <th style="text-align: center;">Qty</th>
+                                    <th style="text-align: center;">Returned</th>
+                                    <th>Issued By</th>
+                                    <th style="text-align: center;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewBorrowActivityTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Preview Section 3: RFID Tag Assignment Activity -->
+                <div class="card report-preview-card">
+                    <h3 class="report-card-heading">
+                        <i class="fas fa-id-card" style="color: var(--blue);"></i> RFID Tag Assignment Activity for Selected Month
+                    </h3>
+                    <div style="overflow-x: auto;">
+                        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                            <thead>
+                                <tr class="report-table-head-row">
+                                    <th>Date / Time</th>
+                                    <th>Entity ID</th>
+                                    <th>Holder / Name</th>
+                                    <th>Bound RFID Tag</th>
+                                    <th style="text-align: center;">Type</th>
+                                    <th style="text-align: center;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewRfidTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Quantity Input Modal -->
+    <div class="modal" id="quantityModal">
+        <div class="modal-content modal-quantity">
+            <div class="modal-header">
+                <h3 id="modalEquipmentName">Equipment Category</h3>
+                <button class="modal-close" id="closeQuantityModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-message" id="modalMessage">How many items is the student taking/returning?</p>
+                <div class="quantity-input-group">
+                    <label>Quantity</label>
+                    <div class="stepper-input">
+                        <button type="button" class="stepper-btn" id="stepperDec">-</button>
+                        <input type="number" id="quantityInput" min="1" value="1" class="quantity-input" readonly>
+                        <button type="button" class="stepper-btn" id="stepperInc">+</button>
+                    </div>
+                    <small class="hint">Available: <span id="modalAvailable">0</span></small>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="confirmQuantityBtn">
+                        <i class="fas fa-check"></i> Confirm
+                    </button>
+                    <button class="btn btn-outline" id="cancelQuantityBtn">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Student Entry Modal -->
+    <div class="modal" id="manualStudentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Manual Student Entry</h3>
+                <button class="modal-close" id="closeManualStudentModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Student ID / Roll Number</label>
+                    <input type="text" id="manualStudentId" placeholder="Enter Student ID">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" id="confirmManualStudentBtn">
+                        <i class="fas fa-check"></i> Confirm
+                    </button>
+                    <button type="button" class="btn btn-outline" id="cancelManualStudentBtn">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Equipment Modal -->
+    <div class="modal" id="addEquipmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Equipment Category</h3>
+                <button type="button" class="modal-close" id="closeAddEquipmentModal" onclick="closeModal('addEquipmentModal');">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Equipment Name <span class="required">*</span></label>
+                    <input type="text" id="newEquipmentName" class="form-control" placeholder="e.g., Cricket Bat Pro" required>
+                </div>
+                <div class="form-group">
+                    <label>Category <span class="required">*</span></label>
+                    <input type="text" id="newEquipmentCategory" class="form-control" placeholder="e.g., Cricket, Football..." required>
+                </div>
+                <div class="form-group">
+                    <label>Total Quantity <span class="required">*</span></label>
+                    <input type="number" id="newEquipmentQuantity" class="form-control" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Room / Location</label>
+                    <input type="text" id="newEquipmentRoom" class="form-control" placeholder="e.g., Main Gym Hall">
+                </div>
+                <div class="form-group">
+                    <label>RFID Tag (Optional)</label>
+                    <input type="text" id="newEquipmentRFID" class="form-control" placeholder="Leave blank to assign later">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" id="confirmAddEquipmentBtn" onclick="confirmAddEquipment();">
+                        <i class="fas fa-plus"></i> Add Equipment
+                    </button>
+                    <button type="button" class="btn btn-outline" id="cancelAddEquipmentBtn" onclick="closeModal('addEquipmentModal');">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Equipment Modal -->
+    <div class="modal" id="editEquipmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit text-blue"></i> Edit Equipment Details</h3>
+                <button type="button" class="modal-close" id="closeEditEquipmentModal" onclick="closeModal('editEquipmentModal');">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editEquipmentId">
+                <div class="form-group">
+                    <label>Equipment ID</label>
+                    <input type="text" id="editEquipmentIdDisplay" class="form-control" readonly style="background: var(--gray-100, #f1f5f9); cursor: not-allowed; font-weight: 700; color: var(--blue);">
+                </div>
+                <div class="form-group">
+                    <label>Equipment Name <span class="required">*</span></label>
+                    <input type="text" id="editEquipmentName" class="form-control" placeholder="e.g., Cricket Bat Pro" required>
+                </div>
+                <div class="form-group">
+                    <label>Category <span class="required">*</span></label>
+                    <input type="text" id="editEquipmentCategory" class="form-control" placeholder="e.g., Cricket, Football..." required>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px;">
+                    <div class="form-group">
+                        <label>Total Quantity <span class="required">*</span></label>
+                        <input type="number" id="editEquipmentTotalQty" class="form-control" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Damaged Quantity <span class="required">*</span></label>
+                        <input type="number" id="editEquipmentDamagedQty" class="form-control" min="0" value="0" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Available Quantity <span style="font-size: 0.75rem; color: var(--gray-500); font-weight: normal;">(Auto)</span></label>
+                        <input type="number" id="editEquipmentAvailableQty" class="form-control" readonly style="background: var(--gray-100, #f1f5f9); cursor: not-allowed; font-weight: 700; color: #16a34a;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Room / Location</label>
+                    <input type="text" id="editEquipmentRoom" class="form-control" placeholder="e.g., Main Gym Hall">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="editEquipmentStatus" class="form-control">
+                        <option value="available">Available / In Stock</option>
+                        <option value="low-stock">Low Stock</option>
+                        <option value="out-of-stock">Out of Stock</option>
+                        <option value="maintenance">Under Maintenance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bound RFID Tag</label>
+                    <input type="text" id="editEquipmentRFID" class="form-control" placeholder="RFID UID (e.g. D8 E2 60 11)">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" id="confirmEditEquipmentBtn" onclick="confirmUpdateEquipment();">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                    <button type="button" class="btn btn-outline" id="cancelEditEquipmentBtn" onclick="closeModal('editEquipmentModal');">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign RFID Modal -->
+    <div class="modal" id="assignRFIDModal">
+        <div class="modal-content modal-assign-rfid">
+            <div class="modal-header">
+                <h3>Assign RFID to Student</h3>
+                <button class="modal-close" id="closeAssignRFIDModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="hint">Search and select a student, then scan the card to bind a unique RFID to that student.</p>
+                <div class="scan-input-group assign-rfid-search">
+                    <input type="text" id="studentAssignmentInput" list="studentAssignmentList" placeholder="Search student by name or ID" class="scan-input">
+                    <button class="btn btn-outline" id="selectStudentAssignmentBtn">
+                        <i class="fas fa-search"></i> Select
+                    </button>
+                </div>
+                <datalist id="studentAssignmentList"></datalist>
+                <div class="assign-rfid-actions">
+                    <button class="btn btn-primary" id="scanRFIDBtn">
+                        <i class="fas fa-qrcode"></i> Scan RFID
+                    </button>
+                    <button class="btn btn-outline" id="saveRFIDBtn">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn btn-outline" id="retakeRFIDBtn">
+                        <i class="fas fa-redo"></i> Re-scan
+                    </button>
+                </div>
+                <div class="assign-rfid-summary">
+                    <p>Selected student: <strong id="selectedStudentLabel">None</strong></p>
+                    <p>Scanned card ID: <strong id="scannedRFIDLabel">None</strong></p>
+                    <p class="hint">After scanning, click Save to assign the RFID. Use Re-scan to capture a different card.</p>
+                </div>
+                <input type="text" id="assignRFIDInput" class="hidden-input" autocomplete="off" aria-hidden="true">
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Scan Modal -->
+    <div class="modal" id="studentScanModal">
+        <div class="modal-content modal-quantity">
+            <div class="modal-header">
+                <h3>Scanning Student RFID</h3>
+                <button class="modal-close" id="closeStudentScanModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="hint">Please place the student's RFID card near the reader. The scan will automatically complete within 20 seconds.</p>
+                <div class="scan-status" id="scanStatus">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span id="scanStatusText">Waiting for student card...</span>
+                </div>
+                <div class="scan-popup-counter">
+                    Time remaining: <strong id="scanCountdown">20</strong> sec
+                </div>
+                <input type="text" id="studentRFIDInput" class="hidden-input" autocomplete="off" aria-hidden="true">
+                <div class="modal-actions" style="margin-top: 20px; justify-content: center; display: flex; gap: 10px;">
+                    <button class="btn btn-outline" id="cancelStudentScanBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Systematic Bluetooth Diagnostic Modal -->
+    <div class="modal" id="bluetoothDiagModal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3><i class="fab fa-bluetooth-b text-blue"></i> Systematic Bluetooth Hardware Diagnostics</h3>
+                <button class="modal-close" id="closeBtDiagModal">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div style="background: var(--gray-100); border-radius: var(--radius); padding: 15px; margin-bottom: 15px;">
+                    <h4 style="margin-bottom: 10px; font-size: 0.95rem;"><i class="fas fa-microchip text-blue"></i> Bluetooth Hardware Status</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem;">
+                        <div>Browser Web BT: <strong id="diagWebBt" style="color: var(--success);">Checking...</strong></div>
+                        <div>Web Serial (COM): <strong id="diagWebSerial" style="color: var(--success);">Checking...</strong></div>
+                        <div>Connection State: <strong id="diagConnState" style="color: var(--warning);">Disconnected</strong></div>
+                        <div>Protocol Mode: <strong id="diagProtocol">BLE / SPP</strong></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px;">Live Signal & Card Packet Stream:</label>
+                    <div id="btPacketConsole" style="background: #090d16; color: #34d399; font-family: monospace; font-size: 0.8rem; padding: 12px; border-radius: 8px; height: 120px; overflow-y: auto; border: 1px solid var(--border-glass);">
+                        [System] Bluetooth Diagnostic Engine initialized.<br>
+                        [Ready] Tap 'Start Wireless Connect' below to pair.
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" id="btnTestBtDisconnect">Disconnect</button>
+                    <button type="button" class="btn btn-primary" id="btnTestBtConnect"><i class="fab fa-bluetooth-b"></i> Start Wireless Connect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RFID Scanning Animation Modal -->
+    <div class="modal scan-anim-modal" id="rfidScanAnimationModal">
+        <div class="modal-content scan-anim-content">
+            <div id="modalRadarIconContainer" class="scan-radar-container">
+                <div id="modalPulseRing" class="modal-pulse-ring"></div>
+                <div id="modalSpinRing" class="modal-spin-ring"></div>
+                <div id="modalIconBg" class="modal-icon-bg">
+                    <i class="fas fa-qrcode" id="scanModalIcon"></i>
+                </div>
+            </div>
+
+            <h3 id="scanModalTitle" class="scan-modal-title">Scan RFID Card</h3>
+            
+            <div id="scanModalStatusBadge" class="badge scan-modal-badge">
+                <i class="fas fa-wifi"></i> <span id="modalScannerStatusText">Scanner is waiting...</span>
+            </div>
+
+            <p id="scanModalSubtext" class="scan-modal-subtext">
+                Place the RFID card or tag on the scanner.
+            </p>
+
+            <div id="scanModalStudentInfo" class="scan-modal-info-box">
+                <div class="info-row"><strong>Target:</strong> <span id="modalStudentNameText">--</span></div>
+                <div class="info-row"><strong>ID / Reg:</strong> <span id="modalStudentIdText">--</span></div>
+                <div id="modalRfidUidRow" class="scan-modal-uid-row" style="display: none;">
+                    RFID UID: <span id="modalRfidUidText">--</span>
+                </div>
+            </div>
+
+            <div id="modalActionsGroup" class="modal-actions-group">
+                <button type="button" class="btn btn-outline" id="btnCloseScanModal">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-outline" id="btnScanAnotherRfid" style="display: none;">
+                    <i class="fas fa-redo"></i> Scan Another
+                </button>
+                <button type="button" class="btn btn-primary" id="btnDoneRfidAssignment" style="display: none;">
+                    <i class="fas fa-check"></i> Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Action Choice Modal (Borrow vs Return Choice after RFID Scan) -->
+    <div class="modal scan-anim-modal" id="studentActionChoiceModal">
+        <div class="modal-content scan-anim-content" style="max-width: 440px; text-align: center; padding: 24px 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--gray-900);">
+                    Select Action
+                </h3>
+                <button type="button" id="btnCloseActionChoiceModal" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray-400);">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Identified Student Banner -->
+            <div class="scan-modal-info-box" style="margin-bottom: 18px; padding: 12px 14px; text-align: left;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(37, 99, 235, 0.15); color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 0.98rem; color: var(--gray-900);" id="actionChoiceStudentName">Student Name</div>
+                        <div style="font-size: 0.82rem; color: var(--gray-500);">ID: <strong id="actionChoiceStudentId" style="color: var(--blue);">--</strong> | Reg: <strong id="actionChoiceStudentReg">--</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <p style="font-size: 0.88rem; color: var(--gray-600); margin-bottom: 16px;">
+                Choose transaction for this student:
+            </p>
+
+            <!-- 2 Big Action Cards -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+                <!-- Card 1: Borrow Equipment -->
+                <button type="button" id="btnChooseBorrow" class="action-choice-card" style="padding: 16px 12px; border-radius: var(--radius); border: 2px solid var(--blue); background: rgba(37, 99, 235, 0.06); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                        <i class="fas fa-cart-plus"></i>
+                    </div>
+                    <strong style="font-size: 0.95rem; color: var(--blue);">Borrow Gear</strong>
+                    <span style="font-size: 0.75rem; color: var(--gray-500); line-height: 1.3;">Issue sports equipment</span>
+                </button>
+
+                <!-- Card 2: Return Equipment -->
+                <button type="button" id="btnChooseReturn" class="action-choice-card" style="padding: 16px 12px; border-radius: var(--radius); border: 2px solid #10b981; background: rgba(16, 185, 129, 0.06); cursor: pointer; text-align: center; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    <div style="width: 44px; height: 44px; border-radius: 50%; background: #10b981; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                        <i class="fas fa-undo-alt"></i>
+                    </div>
+                    <strong style="font-size: 0.95rem; color: #10b981;">Return Gear</strong>
+                    <span style="font-size: 0.75rem; color: var(--gray-500); line-height: 1.3;">Return borrowed items</span>
+                </button>
+            </div>
+
+            <div style="display: flex; justify-content: center;">
+                <button type="button" class="btn btn-outline" id="btnCancelActionChoice" style="padding: 8px 24px; font-size: 0.88rem; font-weight: 600;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Equipment Issue Modal (Auto-triggered after RFID Student Scan) -->
+    <div class="modal scan-anim-modal" id="quickIssueEquipmentModal">
+        <div class="modal-content scan-anim-content" style="max-width: 460px; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color, #e2e8f0); padding-bottom: 12px;">
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; color: var(--gray-900);">
+                    <i class="fas fa-boxes-stacked text-orange" style="color: #f97316;"></i> Issue Equipment
+                </h3>
+                <button type="button" id="btnCloseQuickIssueModal" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--gray-400);">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Target Student Banner -->
+            <div id="quickIssueStudentBanner" class="scan-modal-info-box" style="margin-bottom: 16px; padding: 12px 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(37, 99, 235, 0.15); color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 1rem; color: var(--gray-900);" id="quickIssueStudentName">Student Name</div>
+                        <div style="font-size: 0.82rem; color: var(--gray-500);">ID: <strong id="quickIssueStudentId" style="color: var(--blue);">--</strong> | Reg: <strong id="quickIssueStudentReg">--</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment Selection -->
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.88rem; color: var(--gray-700);">Select Equipment Item <span style="color: #ef4444;">*</span></label>
+                <select id="quickIssueEquipmentSelect" class="form-control" style="width: 100%; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--gray-300); font-size: 0.92rem;">
+                    <option value="">-- Choose Equipment Item --</option>
+                </select>
+            </div>
+
+            <!-- Quantity Input with Stepper -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="font-weight: 600; font-size: 0.88rem; color: var(--gray-700); margin: 0;">Borrow Quantity <span style="color: #ef4444;">*</span></label>
+                    <span id="quickIssueAvailableCount" style="font-size: 0.82rem; color: #16a34a; font-weight: 600;">Available: --</span>
+                </div>
+                <div style="display: flex; align-items: center; border: 1px solid var(--gray-300); border-radius: var(--radius); overflow: hidden; max-width: 180px;">
+                    <button type="button" id="btnQuickQtyMinus" style="width: 44px; height: 42px; background: var(--gray-100); border: none; font-size: 1.1rem; font-weight: 700; cursor: pointer; color: var(--gray-700);">-</button>
+                    <input type="number" id="quickIssueQtyInput" value="1" min="1" max="50" style="width: 100%; height: 42px; text-align: center; border: none; font-weight: 700; font-size: 1.05rem; color: var(--gray-900);">
+                    <button type="button" id="btnQuickQtyPlus" style="width: 44px; height: 42px; background: var(--gray-100); border: none; font-size: 1.1rem; font-weight: 700; cursor: pointer; color: var(--gray-700);">+</button>
+                </div>
+            </div>
+
+            <!-- Action Buttons (Single Line Architecture) -->
+            <div class="quick-issue-actions-row" style="display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border-color, #e2e8f0);">
+                <button type="button" class="btn btn-outline" id="btnScanQuickIssueEquipment" style="flex: 1.25; height: 42px; font-weight: 600; font-size: 0.88rem; color: var(--blue); border-color: var(--blue); display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; padding: 0 10px; border-radius: var(--radius);">
+                    <i class="fas fa-qrcode"></i> Scan Equip
+                </button>
+                <button type="button" class="btn btn-outline" id="btnCancelQuickIssue" style="flex: 0.85; height: 42px; font-weight: 600; font-size: 0.88rem; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; padding: 0 10px; border-radius: var(--radius);">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="btnConfirmQuickIssue" style="flex: 1.6; height: 42px; font-weight: 700; font-size: 0.88rem; background: #16a34a; border-color: #16a34a; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; padding: 0 12px; border-radius: var(--radius);">
+                    <i class="fas fa-check"></i> OK / Issue Equipment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/bluetooth-manager.js"></script>
+    <script src="js/storekeeper.js"></script>
+    <script src="js/colombo-clock.js"></script>
+</body>
+</html>

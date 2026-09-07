@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en" class="auth-checking" data-theme="dark">
+<head>
+    <style>
+        html.auth-checking body {
+            display: none !important;
+        }
+
+        /* High-fidelity Interactive RFID Scan Modal styles */
+        .rfid-modal-card {
+            max-width: 420px !important;
+            background: rgba(15, 23, 42, 0.85) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 
+                        0 0 40px rgba(6, 182, 212, 0.15) !important;
+            border-radius: 20px !important;
+            overflow: hidden;
+            animation: modalFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalFadeIn {
+            from { transform: scale(0.9) translateY(20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .rfid-info-heading p {
+            color: var(--gray-400);
+            font-size: 0.92rem;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        /* RFID Physical Device Simulation Styling */
+        .rfid-device-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .rfid-device {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05),
+                        0 10px 25px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            width: 200px;
+        }
+
+        .rfid-device::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--cyber-cyan);
+            box-shadow: 0 0 8px var(--cyber-cyan);
+            border-radius: 0 0 4px 4px;
+        }
+
+        /* Holographic Radar Screen Styles */
+        .radar-scanner {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            border: 2px solid rgba(6, 182, 212, 0.3);
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+        }
+
+        .radar-line {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--cyber-cyan), transparent);
+            transform-origin: 0% 50%;
+            transform: rotate(0deg);
+            animation: radar-sweep 2s linear infinite;
+            animation-play-state: paused;
+        }
+
+        .radar-scanner.scanning .radar-line {
+            animation-play-state: running;
+        }
+
+        @keyframes radar-sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .radar-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 1px dashed rgba(6, 182, 212, 0.2);
+            pointer-events: none;
+        }
+
+        .circle-1 { width: 35px; height: 35px; }
+        .circle-2 { width: 75px; height: 75px; }
+        .circle-3 { width: 110px; height: 110px; }
+
+        .radar-scanner.scanning {
+            animation: radar-pulse-container 2s ease-in-out infinite;
+            border-color: var(--cyber-cyan);
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+        }
+
+        @keyframes radar-pulse-container {
+            0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.15); }
+            50% { box-shadow: 0 0 25px 5px rgba(6, 182, 212, 0.35); border-color: rgba(6, 182, 212, 0.8); }
+        }
+
+        .radar-scan-target {
+            font-size: 2.2rem;
+            color: rgba(6, 182, 212, 0.5);
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .radar-scanner.scanning .radar-scan-target {
+            color: var(--cyber-cyan);
+            animation: card-float 2s ease-in-out infinite;
+        }
+
+        @keyframes card-float {
+            0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 2px var(--cyber-cyan)); }
+            50% { transform: translateY(-8px) scale(1.05); filter: drop-shadow(0 0 8px var(--cyber-cyan)); }
+        }
+
+        /* Success/Error Target Animations */
+        .radar-scanner.success-scan {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.4) !important;
+        }
+
+        .radar-scanner.success-scan .radar-scan-target {
+            color: #10b981 !important;
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 12px #10b981) !important;
+        }
+
+        .radar-scanner.error-scan {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.4) !important;
+        }
+
+        .radar-scanner.error-scan .radar-scan-target {
+            color: #ef4444 !important;
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 12px #ef4444) !important;
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        /* Device Hardware LED Indicators */
+        .device-status-lights {
+            display: flex;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .status-light {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .status-light.red.active {
+            background: #ef4444;
+            box-shadow: 0 0 8px #ef4444, 0 0 16px #ef4444;
+        }
+
+        .status-light.yellow.active {
+            background: #f59e0b;
+            box-shadow: 0 0 8px #f59e0b, 0 0 16px #f59e0b;
+            animation: led-blink 1.2s alternate infinite;
+        }
+
+        .status-light.green.active {
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981, 0 0 16px #10b981;
+        }
+
+        @keyframes led-blink {
+            from { opacity: 0.3; }
+            to { opacity: 1; }
+        }
+
+        /* Timer Block styling */
+        .rfid-timer-box {
+            margin: 16px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .timer-tag {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--cyber-cyan);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .stopwatch-animate {
+            animation: clock-pulse 1s linear infinite;
+        }
+
+        @keyframes clock-pulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        /* Status Banners */
+        .scan-status-banner {
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 0.92rem;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .scan-status-banner.info {
+            background: rgba(6, 182, 212, 0.08);
+            border-color: rgba(6, 182, 212, 0.15);
+            color: #22d3ee;
+        }
+
+        .scan-status-banner.success {
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .scan-status-banner.error {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        /* Glow effects for actions */
+        .btn-glow {
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+            transition: all 0.3s ease;
+        }
+
+        .btn-glow:hover {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.45);
+            transform: translateY(-2px);
+        }
+    </style>
+    <script>
+        (function() {
+            // Early dark mode check
+            if (localStorage.getItem('darkMode') === 'disabled') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+
+            function checkAuth() {
+                const tabToken = sessionStorage.getItem('unixsport_token_admin') || sessionStorage.getItem('unixsport_jwt_token') || sessionStorage.getItem('token');
+                const tabRole = (sessionStorage.getItem('userRole') || '').toLowerCase();
+                const roleToken = localStorage.getItem('unixsport_token_admin');
+                const roleUser = localStorage.getItem('unixsport_user_admin');
+                const legacyRole = (localStorage.getItem('userRole') || '').toLowerCase();
+                const legacyToken = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
+
+                const isValidAdmin = (tabToken && tabRole === 'admin') ||
+                                     roleToken ||
+                                     roleUser ||
+                                     (legacyRole === 'admin' && legacyToken);
+
+                if (!isValidAdmin) {
+                    window.location.replace('login.html?role=admin');
+                } else {
+                    document.documentElement.classList.remove('auth-checking');
+                }
+            }
+            checkAuth();
+            window.addEventListener('pageshow', checkAuth);
+            window.addEventListener('pagehide', function() {
+                document.documentElement.classList.add('auth-checking');
+            });
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniXsport - Admin Dashboard</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="logo">
+            <img src="rajarata-logo.png" alt="Rajarata University Logo" class="university-logo">
+            <div class="logo-text">
+                <span class="brand-name">UniXsport Admin</span>
+                <span class="univ-tag">Rajarata University of Sri Lanka</span>
+            </div>
+        </div>
+        <div class="navbar-right">
+            <button class="icon-btn active" id="darkModeToggle" aria-label="Toggle dark mode" title="Dark Mode">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="admin-info">
+                <span id="adminName">Admin</span>
+            </div>
+            <div class="notification-dropdown">
+                <button class="icon-btn" id="notificationBtn" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notificationBadge" style="display: none;">0</span>
+                </button>
+                <div class="notification-panel" id="notificationPanel">
+                    <h4>Notifications</h4>
+                    <div class="notification-item" style="padding: 12px; color: var(--gray-500); text-align: center;">
+                        <i class="fas fa-bell-slash" style="margin-right: 6px;"></i>
+                        <span>No new notifications</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-outline logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> <span class="btn-text">Logout</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-link active" data-page="dashboard" id="navDashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#user-management" class="nav-link" data-page="user-management" id="navUserManagement">
+                <i class="fas fa-users"></i>
+                <span>User Management</span>
+            </a>
+            <a href="#equipment" class="nav-link" data-page="equipment" id="navEquipment">
+                <i class="fas fa-boxes-stacked"></i>
+                <span>Equipment Management</span>
+            </a>
+            <a href="#notices" class="nav-link" data-page="notices" id="navNotices">
+                <i class="fas fa-bullhorn"></i>
+                <span>Notices & Broadcasts</span>
+            </a>
+            <a href="#events" class="nav-link" data-page="events" id="navEvents">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Upcoming Events</span>
+            </a>
+            <a href="#profile" class="nav-link" data-page="profile" id="navProfile">
+                <i class="fas fa-user-cog"></i>
+                <span>Admin Profile</span>
+            </a>
+            <a href="#" class="nav-link logout-link" id="sidebarLogout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Page -->
+        <section id="page-dashboard" class="page active">
+            <h1 class="page-title">Admin Dashboard</h1>
+            <div class="dashboard-cards">
+                <a href="#" class="card card-clickable" data-page="user-management">
+                    <div class="card-icon blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Total Students</h3>
+                    <p class="card-value" id="totalStudents">0</p>
+                </a>
+                <a href="#" class="card card-clickable" data-page="user-management">
+                    <div class="card-icon orange">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h3>Total Coaches</h3>
+                    <p class="card-value" id="totalCoaches">0</p>
+                </a>
+                <a href="#" class="card card-clickable" data-page="equipment">
+                    <div class="card-icon green">
+                        <i class="fas fa-boxes-stacked"></i>
+                    </div>
+                    <h3>Total Equipment</h3>
+                    <p class="card-value" id="totalEquipment">0</p>
+                </a>
+                <a href="#" class="card card-clickable" data-page="events">
+                    <div class="card-icon purple">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3>Upcoming Events</h3>
+                    <p class="card-value" id="totalEvents">0</p>
+                </a>
+                <div class="card equipment-status-card">
+                    <h3>Equipment Status</h3>
+                    <div class="status-breakdown">
+                        <div class="status-item available">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Available: <strong id="equipAvailable">0</strong></span>
+                        </div>
+                        <div class="status-item borrowed">
+                            <i class="fas fa-hand-holding"></i>
+                            <span>Borrowed: <strong id="equipBorrowed">0</strong></span>
+                        </div>
+                        <div class="status-item damaged">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Damaged: <strong id="equipDamaged">0</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="quick-links">
+                <h2><i class="fas fa-link"></i> Quick Links</h2>
+                <div class="quick-links-grid">
+                    <a href="#" class="quick-link-card" data-page="user-management">
+                        <i class="fas fa-users"></i>
+                        <span>User Management</span>
+                    </a>
+                    <a href="#" class="quick-link-card" data-page="equipment">
+                        <i class="fas fa-boxes-stacked"></i>
+                        <span>Equipment Management</span>
+                    </a>
+                    <a href="#" class="quick-link-card" data-page="notices">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Notices & Broadcasts</span>
+                    </a>
+                    <a href="#" class="quick-link-card" data-page="profile">
+                        <i class="fas fa-user-cog"></i>
+                        <span>Admin Profile</span>
+                    </a>
+            </div>
+
+            <!-- Technological Charts Section -->
+            <div class="dashboard-charts-panel">
+                <h2><i class="fas fa-chart-pie"></i> System Stats & Metrics</h2>
+                <div class="charts-grid">
+                    <!-- Equipment Status Chart (Donut Chart) -->
+                    <div class="chart-card">
+                        <h3>Equipment Status Breakdown</h3>
+                        <div class="donut-chart-wrapper">
+                            <svg class="donut-chart" viewBox="0 0 100 100">
+                                <circle class="donut-ring" cx="50" cy="50" r="30" fill="transparent" stroke-width="8"></circle>
+                                <circle class="donut-segment segment-available" id="donutAvailable" cx="50" cy="50" r="30" fill="transparent" stroke-width="8" stroke-dasharray="100 0" stroke-dashoffset="0"></circle>
+                                <circle class="donut-segment segment-borrowed" id="donutBorrowed" cx="50" cy="50" r="30" fill="transparent" stroke-width="8" stroke-dasharray="0 100" stroke-dashoffset="0"></circle>
+                                <circle class="donut-segment segment-damaged" id="donutDamaged" cx="50" cy="50" r="30" fill="transparent" stroke-width="8" stroke-dasharray="0 100" stroke-dashoffset="0"></circle>
+                            </svg>
+                            <div class="donut-center-text">
+                                <span class="donut-total" id="donutTotalCount">0</span>
+                                <span class="donut-label">Items</span>
+                            </div>
+                        </div>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="legend-dot green"></span> Available</span>
+                            <span class="legend-item"><span class="legend-dot orange"></span> Borrowed</span>
+                            <span class="legend-item"><span class="legend-dot red"></span> Damaged</span>
+                        </div>
+                    </div>
+
+                    <!-- User Ratios (Horizontal Progress Bars) -->
+                    <div class="chart-card">
+                        <h3>User Engagement Ratio</h3>
+                        <div class="bar-chart-wrapper">
+                            <div class="bar-metric">
+                                <div class="bar-header">
+                                    <span>Students</span>
+                                    <span id="barStudentCount">0</span>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill blue" id="barStudentFill" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="bar-metric" style="margin-top: 24px;">
+                                <div class="bar-header">
+                                    <span>Coaches</span>
+                                    <span id="barCoachCount">0</span>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill orange" id="barCoachFill" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="recent-notices">
+                <h2><i class="fas fa-bell"></i> Recent Notices</h2>
+                <div class="notices-list" id="recentNotices">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- User Management Page -->
+        <section id="page-user-management" class="page">
+            <h1 class="page-title">User Management</h1>
+            <div class="page-controls">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="userSearch" placeholder="Search by name or email...">
+                </div>
+                <button class="btn btn-primary" id="addUserBtn">
+                    <i class="fas fa-plus"></i> Add User
+                </button>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="students">Students</button>
+                <button class="tab-btn" data-tab="coaches">Coaches</button>
+                <button class="tab-btn" data-tab="storekeepers">Storekeepers</button>
+                <button class="tab-btn" data-tab="admins">Admins</button>
+                <button class="tab-btn" data-tab="all">All Users</button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>RFID Code</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+                <div class="empty-state" id="noUsers" style="display: none;">
+                    <i class="fas fa-users"></i>
+                    <p>No users found</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Equipment Management Page -->
+        <section id="page-equipment" class="page">
+            <h1 class="page-title">Equipment & Sports Room Management</h1>
+            <div class="page-controls">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="equipmentSearch" placeholder="Search equipment...">
+                </div>
+                <select id="equipmentStatusFilter" class="filter-select">
+                    <option value="">All Status</option>
+                    <option value="available">Available</option>
+                    <option value="borrowed">Borrowed</option>
+                    <option value="damaged">Damaged</option>
+                </select>
+                <select id="equipmentRoomFilter" class="filter-select">
+                    <option value="">All Rooms</option>
+                </select>
+                <button class="btn btn-primary" id="addEquipmentBtn">
+                    <i class="fas fa-plus"></i> Add Equipment
+                </button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="equipmentTable">
+                    <thead>
+                        <tr>
+                            <th>Equipment Name</th>
+                            <th>Quantity</th>
+                            <th>Available</th>
+                            <th>Status</th>
+                            <th>Sports Room</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipmentTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+                <div class="empty-state" id="noEquipment" style="display: none;">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <p>No equipment found</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notices Page -->
+        <section id="page-notices" class="page">
+            <h1 class="page-title">Notices & Broadcast Messages</h1>
+            <div class="page-controls">
+                <button class="btn btn-primary" id="createNoticeBtn">
+                    <i class="fas fa-plus"></i> Create Notice
+                </button>
+            </div>
+            <div class="notice-form-card" id="noticeFormCard">
+                <h3>Create New Notice</h3>
+                <form id="noticeForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Title <span class="required">*</span></label>
+                            <input type="text" id="noticeTitle" placeholder="Notice title" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Visible To <span class="required">*</span></label>
+                            <select id="noticeVisibleTo" required>
+                                <option value="all">All Users</option>
+                                <option value="students">Students Only</option>
+                                <option value="coaches">Coaches Only</option>
+                                <option value="storekeepers">Storekeepers (Inventory) Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Message <span class="required">*</span></label>
+                        <textarea id="noticeMessage" rows="4" placeholder="Enter your message..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select id="noticePriority">
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Publish Notice
+                    </button>
+                </form>
+            </div>
+            <div class="notices-list-full" style="background: rgba(30, 41, 59, 0) !important;">
+                <h3>Published Notices</h3>
+                <div id="noticesList">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Sports Events Management Page -->
+        <section id="page-events" class="page">
+            <h1 class="page-title">Sports Events Management & Publishing</h1>
+            <div class="page-controls">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="eventSearch" placeholder="Search events by title, location, or keyword...">
+                </div>
+                <select id="eventCategoryFilter" class="filter-select">
+                    <option value="">All Categories</option>
+                    <option value="sports">Sports Tournament</option>
+                    <option value="training">Training / Workshop</option>
+                    <option value="marathon">Marathon / Race</option>
+                    <option value="wellness">Health & Wellness</option>
+                </select>
+                <button class="btn btn-primary" id="addEventBtn">
+                    <i class="fas fa-calendar-plus"></i> Publish New Event
+                </button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="eventsTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Event Title</th>
+                            <th>Category</th>
+                            <th>Location</th>
+                            <th>Target Participants</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventsTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+                <div class="empty-state" id="noEvents" style="display: none;">
+                    <i class="fas fa-calendar-times"></i>
+                    <p>No sports events found</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Admin Profile Page -->
+        <section id="page-profile" class="page">
+            <h1 class="page-title">Admin Profile</h1>
+            <div class="profile-card">
+                <div class="profile-photo-section">
+                    <div class="profile-photo" id="profilePhotoDisplay">
+                        <img src="" alt="Profile" id="profileImg" style="display: none;">
+                        <i class="fas fa-user-shield fa-3x placeholder-icon"></i>
+                    </div>
+                    <div class="photo-btn-group" style="display: flex; gap: 8px; justify-content: center; margin-top: 10px;">
+                        <button class="btn btn-outline btn-sm" id="uploadPhotoBtn">
+                            <i class="fas fa-camera"></i> Upload Photo
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="removePhotoBtn" style="display: none;">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
+                    </div>
+                    <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;">
+                </div>
+                <div class="profile-details">
+                    <div class="profile-row">
+                        <span class="label">User ID</span>
+                        <span class="value" id="profileUserId" style="font-family: monospace; font-weight: 700; color: var(--blue);">--</span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="label">Name</span>
+                        <span class="value" id="profileName">Administrator</span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="label">Email</span>
+                        <span class="value" id="profileEmail">--</span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="label">Role</span>
+                        <span class="value"><span class="badge-role admin">Admin</span></span>
+                    </div>
+                    <div class="profile-row">
+                        <span class="label">Member Since</span>
+                        <span class="value" id="profileMemberSince">Staff</span>
+                    </div>
+                </div>
+                <div class="profile-actions">
+                    <button class="btn btn-primary" id="editProfileBtn">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </button>
+                    <button class="btn btn-outline" id="changePasswordBtn">
+                        <i class="fas fa-key"></i> Change Password
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add/Edit User Modal -->
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Add User</h3>
+                <button class="modal-close" id="closeUserModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+                    <div class="form-group" id="userIdDisplayGroup" style="display: none;">
+                        <label>User ID</label>
+                        <input type="text" id="userDisplayId" readonly style="background: var(--gray-100); cursor: not-allowed; font-family: monospace; font-weight: 700; color: var(--blue);">
+                    </div>
+                    <div class="form-group">
+                        <label>Name <span class="required">*</span></label>
+                        <input type="text" id="userName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email <span class="required">*</span></label>
+                        <input type="email" id="userEmail" required>
+                    </div>
+                    <div class="form-group" id="userPasswordGroup">
+                        <label>Password <span class="required">*</span></label>
+                        <input type="password" id="userPassword" minlength="6" placeholder="Min 6 characters">
+                    </div>
+                    <div class="form-group">
+                        <label>Role <span class="required">*</span></label>
+                        <select id="userRole" required>
+                            <option value="student">Student</option>
+                            <option value="coach">Coach</option>
+                            <option value="storekeeper">Storekeeper</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>RFID Code</label>
+                        <div class="rfid-input-container" style="display: flex; gap: 8px;">
+                            <input type="text" id="userRfid" placeholder="Scan on reader or enter RFID UID..." style="flex: 1;">
+                            <button type="button" class="btn btn-outline" id="scanRfidBtn" style="padding: 10px 14px; flex-shrink: 0;">
+                                <i class="fas fa-rss"></i> Scan
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary" id="saveUserBtn">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button type="button" class="btn btn-outline" id="cancelUserBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Equipment Modal -->
+    <div class="modal" id="equipmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="equipmentModalTitle">Add Equipment</h3>
+                <button class="modal-close" id="closeEquipmentModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="equipmentForm">
+                    <input type="hidden" id="equipmentId">
+                    <div class="form-group">
+                        <label>Equipment Name <span class="required">*</span></label>
+                        <input type="text" id="equipmentName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Quantity <span class="required">*</span></label>
+                        <input type="number" id="equipmentQuantity" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Status <span class="required">*</span></label>
+                        <select id="equipmentStatus" required>
+                            <option value="available">Available</option>
+                            <option value="borrowed">Borrowed</option>
+                            <option value="damaged">Damaged</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sports Room <span class="required">*</span></label>
+                        <select id="equipmentRoom" required>
+                            <option value="">Select room...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="equipmentDescription" rows="2" placeholder="Optional"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary" id="saveEquipmentBtn">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button type="button" class="btn btn-outline" id="cancelEquipmentBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Sports Event Modal -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content" style="max-width: 540px;">
+            <div class="modal-header">
+                <h3 id="eventModalTitle">Publish Sports Event</h3>
+                <button class="modal-close" id="closeEventModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="eventForm">
+                    <input type="hidden" id="eventId">
+                    <div class="form-group">
+                        <label>Event Title <span class="required">*</span></label>
+                        <input type="text" id="eventTitle" placeholder="e.g. Inter-Faculty Football Championship 2026" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Event Date <span class="required">*</span></label>
+                            <input type="date" id="eventDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Category <span class="required">*</span></label>
+                            <select id="eventCategory" required>
+                                <option value="sports">Sports Tournament</option>
+                                <option value="training">Training / Workshop</option>
+                                <option value="marathon">Marathon / Race</option>
+                                <option value="wellness">Health & Wellness</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Location <span class="required">*</span></label>
+                            <input type="text" id="eventLocation" placeholder="e.g. Main Sports Complex" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Participants / Eligibility <span class="required">*</span></label>
+                            <input type="text" id="eventParticipants" placeholder="e.g. Open to All Students" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description & Details</label>
+                        <textarea id="eventDescription" rows="3" placeholder="Enter event schedule, requirements, or guidelines..."></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary" id="saveEventBtn">
+                            <i class="fas fa-paper-plane"></i> Publish Event
+                        </button>
+                        <button type="button" class="btn btn-outline" id="cancelEventBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal" id="editProfileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Profile</h3>
+                <button class="modal-close" id="closeEditProfileModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="form-group">
+                        <label>Name <span class="required">*</span></label>
+                        <input type="text" id="editProfileName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email <span class="required">*</span></label>
+                        <input type="email" id="editProfileEmail" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-outline" id="cancelEditProfileBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div class="modal" id="changePasswordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Change Password</h3>
+                <button class="modal-close" id="closeChangePasswordModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label>Current Password <span class="required">*</span></label>
+                        <input type="password" id="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Password <span class="required">*</span></label>
+                        <input type="password" id="newPassword" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password <span class="required">*</span></label>
+                        <input type="password" id="confirmPassword" minlength="6" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                        <button type="button" class="btn btn-outline" id="cancelChangePasswordBtn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content modal-sm">
+            <div class="modal-body text-center">
+                <div class="delete-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 id="deleteModalTitle">Confirm Delete</h3>
+                <p id="deleteModalMessage">Are you sure you want to delete this item?</p>
+                <div class="modal-actions justify-center">
+                    <button class="btn btn-danger" id="confirmDeleteBtn">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    <button class="btn btn-outline" id="cancelDeleteBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RFID Scan Modal -->
+    <div class="modal" id="rfidScanModal">
+        <div class="modal-content text-center" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>RFID Card Scanner</h3>
+                <button class="modal-close" id="closeRfidScanModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="rfidScanInstructions" style="color: var(--gray-600); font-size: 0.95rem; margin-bottom: 8px;">Please place or swipe the RFID card on the reader.</p>
+                <div id="adminCurrentRfidInfo" style="display: none; margin-bottom: 12px; font-size: 0.88rem; color: var(--gray-600); background: var(--gray-100); border-radius: 6px; padding: 6px 10px;">
+                    Current Tag: <strong id="adminCurrentRfidTag" style="color: var(--blue);">--</strong> <span style="font-size: 0.8rem; color: var(--gray-500);">(Tap new card to update)</span>
+                </div>
+                
+                <!-- Radar Scanner Visual Overlay -->
+                <div class="radar-scanner-wrapper">
+                    <div class="radar-scanner" id="adminRadarScanner">
+                        <div class="radar-line"></div>
+                        <div class="radar-circle circle-1"></div>
+                        <div class="radar-circle circle-2"></div>
+                        <div class="radar-circle circle-3"></div>
+                        <div class="radar-glow"></div>
+                        <div class="radar-scan-target">
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="rfid-timer-box">
+                    <span class="timer-tag"><i class="fas fa-stopwatch"></i> Time Remaining: <strong id="rfidTimer">20</strong>s</span>
+                </div>
+                
+                <div id="rfidScanStatus" class="scan-status-message mt-3"></div>
+                
+                <div class="modal-actions" style="justify-content: center; margin-top: 24px; gap: 12px;">
+                    <button type="button" class="btn btn-outline" id="simulateRfidTapBtn">
+                        <i class="fas fa-rss"></i> Simulate Tap
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="cancelRfidScanBtn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/colombo-clock.js"></script>
+</body>
+</html>

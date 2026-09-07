@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <script>
+        (function() {
+            if (localStorage.getItem('darkMode') === 'disabled') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniXsport Admin Portal</title>
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+        <div class="logo">
+            <img src="rajarata-logo.png" alt="Rajarata University Logo" class="university-logo">
+            <div class="logo-text">
+                <span class="brand-name">UniXsport</span>
+                <span class="univ-tag">Rajarata University of Sri Lanka</span>
+            </div>
+        </div>
+        <div class="navbar-right">
+            <button class="icon-btn active" id="darkModeToggle" aria-label="Toggle dark mode" title="Dark Mode">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="portal-dropdown" id="portalDropdown">
+                <button class="btn btn-primary btn-glow dropdown-toggle" id="portalDropdownBtn">
+                    <i class="fas fa-sign-in-alt"></i> <span class="btn-text">Portal Login</span> <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu" id="portalDropdownMenu">
+                    <a href="login.html?role=student" class="dropdown-item">
+                        <i class="fas fa-user-graduate"></i> Student Portal
+                    </a>
+                    <a href="login.html?role=coach" class="dropdown-item">
+                        <i class="fas fa-user-tie"></i> Coach Portal
+                    </a>
+                    <a href="login.html?role=storekeeper" class="dropdown-item">
+                        <i class="fas fa-boxes-stacked"></i> Storekeeper Portal
+                    </a>
+                    <a href="login.html?role=admin" class="dropdown-item">
+                        <i class="fas fa-shield-halved"></i> Admin Portal
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Page -->
+        <section id="page-dashboard" class="page active">
+            <div class="hero-section">
+                <div class="hero-emblem-wrapper">
+                    <img src="rajarata-logo.png" alt="Rajarata University Seal" class="hero-university-seal">
+                </div>
+                <h1 class="hero-title">Rajarata University of Sri Lanka</h1>
+                <p class="hero-subtitle">RUSL Physical Education & Sports Portal</p>
+                <p class="hero-description">Welcome to UniXsport, the official sports management, schedule tracking, and gym inventory control center for Rajarata University of Sri Lanka.</p>
+                <div class="hero-buttons">
+                    <button class="btn btn-secondary btn-large btn-glow" data-page="facilities">
+                        <i class="fas fa-compass"></i> Explore Sports Facilities
+                    </button>
+                </div>
+            </div>
+
+            <div class="cta-banner">
+                <div class="cta-content">
+                    <h2><i class="fas fa-lightning-bolt"></i> Choose Your Role to Access Dashboard</h2>
+                    <p>Select your role below and unlock all the features designed for you</p>
+                </div>
+            </div>
+
+            <div class="quick-access-section">
+                <h2 class="section-title"><i class="fas fa-bolt"></i> Quick Access</h2>
+                <div class="role-cards-grid">
+                    <div class="role-card" id="studentCard">
+                        <div class="role-icon student-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <h3>Student</h3>
+                        <p>Access your fitness schedule, equipment requests, and workout plans</p>
+                        <button class="btn btn-primary" onclick="requireLogin('student')">
+                            Enter Portal <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="role-card" id="coachCard">
+                        <div class="role-icon coach-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <h3>Coach</h3>
+                        <p>Manage training sessions, approve requests, and track student progress</p>
+                        <button class="btn btn-primary" onclick="requireLogin('coach')">
+                            Enter Portal <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="role-card" id="adminCard">
+                        <div class="role-icon admin-icon">
+                            <i class="fas fa-shield-halved"></i>
+                        </div>
+                        <h3>Administrator</h3>
+                        <p>Manage users, equipment inventory, and system-wide settings</p>
+                        <button class="btn btn-primary" onclick="requireLogin('admin')">
+                            Enter Portal <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="role-card" id="storekeeperCard">
+                        <div class="role-icon storekeeper-icon">
+                            <i class="fas fa-boxes-stacked"></i>
+                        </div>
+                        <h3>Storekeeper</h3>
+                        <p>Handle equipment distribution, inventory management, and maintenance</p>
+                        <button class="btn btn-primary" onclick="requireLogin('storekeeper')">
+                            Enter Portal <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+            </div>
+        </div>
+
+            
+
+            <h2 class="section-title metrics-title"><i class="fas fa-chart-line"></i> Dashboard Metrics </h2>
+
+            <div class="dashboard-cards metrics-3-grid">
+                <div class="card stats-card">
+                    <div class="card-icon blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Active Users</h3>
+                    <p class="card-value" id="activeUsers">...</p>
+                    <span class="card-label">members</span>
+                </div>
+
+                <div class="card stats-card">
+                    <div class="card-icon orange">
+                        <i class="fas fa-boxes-stacked"></i>
+                    </div>
+                    <h3>Equipment Items</h3>
+                    <p class="card-value" id="equipmentCount">...</p>
+                    <span class="card-label">total items</span>
+                </div>
+
+                <div class="card stats-card">
+                    <div class="card-icon purple">
+                        <i class="fas fa-dumbbell"></i>
+                    </div>
+                    <h3>Facilities</h3>
+                    <p class="card-value" id="facilitiesCount">...</p>
+                    <span class="card-label">available</span>
+                </div>
+            </div>
+
+            <!-- Upcoming Events Section on Main Home Page -->
+            <div class="home-events-section" style="margin-bottom: 48px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                    <h2 class="section-title" style="margin-bottom: 0;"><i class="fas fa-calendar-alt"></i> Upcoming Events</h2>
+                    <button class="btn btn-secondary" data-page="events" style="font-size: 0.88rem; padding: 8px 16px; gap: 8px;">
+                        <i class="fas fa-calendar-days"></i> View Full Calendar <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+                <div class="events-grid" id="homeEventsGrid">
+                    <div class="loading-state" style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--gray-500);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                        <p>Loading upcoming events from database...</p>
+                    </div>
+                </div>
+            </div>
+                <h2 class="section-title"><i class="fas fa-sparkles"></i> Key Features</h2>
+                <div class="features-grid">
+                    <div class="benefit-item">
+                        <div class="benefit-icon blue">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h3>Smart Scheduling</h3>
+                        <p>Request and manage gym schedules with ease</p>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon green">
+                            <i class="fas fa-boxes-stacked"></i>
+                        </div>
+                        <h3>Equipment Management</h3>
+                        <p>Track and borrow equipment with real-time availability</p>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon orange">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Progress Tracking</h3>
+                        <p>Monitor fitness progress and achievements</p>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon purple">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h3>Smart Notifications</h3>
+                        <p>Get timely updates and important announcements</p>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon green">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <h3>Secure Access</h3>
+                        <p>Role-based access control for data security</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Facilities Page -->
+        <section id="page-facilities" class="page">
+            <h1 class="page-title">Our Facilities</h1>
+            <div class="facilities-grid" id="facilitiesGrid">
+                <div class="loading-state" style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--gray-500);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p>Loading sports facilities from database...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Announcements Page -->
+        <section id="page-announcements" class="page">
+            <h1 class="page-title">Announcements</h1>
+            <div class="announcements-list" id="announcementsList">
+                <div class="loading-state" style="text-align: center; padding: 40px; color: var(--gray-500);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p>Loading announcements from database...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Events Page -->
+        <section id="page-events" class="page">
+            <h1 class="page-title">Upcoming Events</h1>
+            <div class="events-grid" id="eventsGrid">
+                <div class="loading-state" style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--gray-500);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p>Loading upcoming events from database...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Us Page -->
+        <section id="page-about" class="page">
+            <h1 class="page-title">About UniXsport</h1>
+            <div class="about-container">
+                <div class="about-card">
+                    <h2>Our Mission</h2>
+                    <p>To provide a comprehensive, accessible, and integrated platform for managing gym and sports activities, empowering students, coaches, and administrators with tools for success.</p>
+                </div>
+
+                <div class="about-card">
+                    <h2>Our Vision</h2>
+                    <p>To create a vibrant sports community where technology enables seamless collaboration, optimal resource management, and achievement of fitness and athletic excellence.</p>
+                </div>
+
+                <div class="about-card">
+                    <h2>Why Choose UniXsport?</h2>
+                    <ul>
+                        <li>Seamless booking and scheduling system</li>
+                        <li>Real-time equipment availability tracking</li>
+                        <li>Comprehensive user management</li>
+                        <li>Mobile-friendly interface</li>
+                        <li>Secure, role-based access control</li>
+                        <li>24/7 system availability</li>
+                    </ul>
+                </div>
+
+                <div class="about-card">
+                    <h2>Our Team</h2>
+                    <p>UniXsport is developed and maintained by a dedicated team of IT professionals and sports management experts committed to excellence in both technology and user experience.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Page -->
+        <section id="page-contact" class="page">
+            <h1 class="page-title">Contact Us</h1>
+            <div class="contact-container">
+                <div class="contact-card">
+                    <h3><i class="fas fa-map-marker-alt"></i> Location</h3>
+                    <p>Sports Complex, University Campus</p>
+                    <p>Building A, Ground Floor</p>
+                </div>
+
+                <div class="contact-card">
+                    <h3><i class="fas fa-phone"></i> Phone</h3>
+                    <p>General: +91-XXXX-XXXX-XXX</p>
+                    <p>Support: +91-XXXX-XXXX-XXX</p>
+                </div>
+
+                <div class="contact-card">
+                    <h3><i class="fas fa-envelope"></i> Email</h3>
+                    <p>support@unixsport.edu</p>
+                    <p>admin@unixsport.edu</p>
+                </div>
+
+                <div class="contact-card">
+                    <h3><i class="fas fa-clock"></i> Hours</h3>
+                    <p>Mon - Fri: 8:00 AM - 6:00 PM</p>
+                    <p>Sat - Sun: 10:00 AM - 4:00 PM</p>
+                </div>
+            </div>
+
+            <div class="contact-form-section">
+                <h2>Send us a Message</h2>
+                <form class="contact-form" id="contactForm">
+                    <div class="form-group">
+                        <label for="contactName">Name</label>
+                        <input type="text" id="contactName" placeholder="Your name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactEmail">Email</label>
+                        <input type="email" id="contactEmail" placeholder="Your email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactSubject">Subject</label>
+                        <input type="text" id="contactSubject" placeholder="Message subject" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactMessage">Message</label>
+                        <textarea id="contactMessage" placeholder="Your message" rows="5" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Send Message
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Role Selection Page -->
+        <section id="page-role-select" class="page">
+            <h1 class="page-title">Select Your Role</h1>
+            <p class="role-select-subtitle">Choose your role to access the respective dashboard</p>
+            <div class="role-cards-grid full-width">
+                <div class="role-card large">
+                    <div class="role-icon student-icon">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <h3>Student</h3>
+                    <p>Access your fitness journey, schedule classes, and track progress</p>
+                    <button class="btn btn-primary" onclick="requireLogin('student')">
+                        Go to Dashboard <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <div class="role-card large">
+                    <div class="role-icon coach-icon">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h3>Coach</h3>
+                    <p>Manage training sessions and monitor student progress</p>
+                    <button class="btn btn-primary" onclick="requireLogin('coach')">
+                        Go to Dashboard <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <div class="role-card large">
+                    <div class="role-icon admin-icon">
+                        <i class="fas fa-shield-halved"></i>
+                    </div>
+                    <h3>Administrator</h3>
+                    <p>Manage system, users, and all administrative tasks</p>
+                    <button class="btn btn-primary" onclick="requireLogin('admin')">
+                        Go to Dashboard <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <div class="role-card large">
+                    <div class="role-icon storekeeper-icon">
+                        <i class="fas fa-boxes-stacked"></i>
+                    </div>
+                    <h3>Storekeeper</h3>
+                    <p>Manage equipment inventory and distribution</p>
+                    <button class="btn btn-primary" onclick="requireLogin('storekeeper')">
+                        Go to Dashboard <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3><img src="rajarata-logo.png" alt="Rajarata University Logo" class="footer-logo"> UniXsport</h3>
+                <p>The ultimate platform for managing gym and sports activities efficiently.</p>
+                <div class="social-links">
+                    <a href="https://www.facebook.com/RajarataUniversity/" target="_blank" rel="noopener noreferrer" title="Facebook"><i class="fab fa-facebook"></i></a>
+                    <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" title="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="https://www.linkedin.com/school/rajarata-university-of-sri-lanka%C2%A0%C2%A0/" target="_blank" rel="noopener noreferrer" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="#facilities" data-page="facilities">Facilities</a></li>
+                    <li><a href="#events" data-page="events">Events</a></li>
+                    <li><a href="#about" data-page="about">About Us</a></li>
+                    <li><a href="#announcements" data-page="announcements">Announcements</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="#role-select" data-page="role-select">Dashboard Access</a></li>
+                    <li><a href="#contact" data-page="contact">Help & Support</a></li>
+                    <li><a href="#about" data-page="about">Documentation</a></li>
+                    <li><a href="#contact" data-page="contact">FAQs</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h4>Contact Info</h4>
+                <ul>
+                    <li><i class="fas fa-envelope"></i> <a href="mailto:itt2023086@tec.rjt.ac.lk">itt2023086@tec.rjt.ac.lk</a></li>
+                    <li><i class="fas fa-phone"></i> <a href="tel:+94-762617563">+94 762617563</a></li>
+                    <li><i class="fas fa-map-marker-alt"></i>Rajarata University of Sri Lanka</li>
+                    <li><i class="fas fa-clock"></i> Mon-Fri: 8 AM - 6 PM</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="footer-bottom-content">
+                <p>&copy; 2024-2026 UniXsport. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#about" data-page="about">Privacy Policy</a>
+                    <span>•</span>
+                    <a href="#about" data-page="about">Terms of Service</a>
+                    <span>•</span>
+                    <a href="#about" data-page="about">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/colombo-clock.js"></script>
+</body>
+</html>

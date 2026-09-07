@@ -1,0 +1,24 @@
+MFRC522
+SDA/SS  → GPIO 5
+SCK     → GPIO 18
+MOSI    → GPIO 23
+MISO    → GPIO 19
+RST     → GPIO 4
+VCC     → 3.3V
+GND     → GND
+
+LCD I2C
+SDA     → GPIO 21
+SCL     → GPIO 22
+VCC     → 5V/VIN
+GND     → GND
+
+Buzzer
++       → GPIO 27
+-       → GND
+
+GREEN LED
+GPIO 25 → 220Ω → LED → GND
+
+RED LED
+GPIO 26 → 220Ω → LED → GND

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en" class="auth-checking" data-theme="dark">
+<head>
+    <style>
+        html.auth-checking body {
+            display: none !important;
+        }
+    </style>
+    <script>
+        (function() {
+            // Early dark mode check
+            if (localStorage.getItem('darkMode') === 'disabled') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+
+            function checkAuth() {
+                const tabToken = sessionStorage.getItem('unixsport_token_coach') || sessionStorage.getItem('unixsport_jwt_token') || sessionStorage.getItem('token');
+                const tabRole = (sessionStorage.getItem('userRole') || '').toLowerCase();
+                const roleToken = localStorage.getItem('unixsport_token_coach');
+                const roleUser = localStorage.getItem('unixsport_user_coach');
+                const legacyRole = (localStorage.getItem('userRole') || '').toLowerCase();
+                const legacyToken = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
+
+                const isValidCoach = (tabToken && tabRole === 'coach') ||
+                                     roleToken ||
+                                     roleUser ||
+                                     (legacyRole === 'coach' && legacyToken);
+
+                if (!isValidCoach) {
+                    window.location.replace('login.html?role=coach');
+                } else {
+                    document.documentElement.classList.remove('auth-checking');
+                }
+            }
+            checkAuth();
+            window.addEventListener('pageshow', checkAuth);
+            window.addEventListener('pagehide', function() {
+                document.documentElement.classList.add('auth-checking');
+            });
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniXsport - Coach Dashboard</title>
+    <link rel="stylesheet" href="css/coach.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="logo">
+            <img src="rajarata-logo.png" alt="Rajarata University Logo" class="university-logo">
+            <div class="logo-text">
+                <span class="brand-name">UniXsport Coach</span>
+                <span class="univ-tag">Rajarata University of Sri Lanka</span>
+            </div>
+        </div>
+        <div class="navbar-right">
+            <button class="icon-btn active" id="darkModeToggle" aria-label="Toggle dark mode" title="Dark Mode">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="notification-dropdown">
+                <button class="icon-btn" id="notificationBtn" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notificationBadge" style="display: none;">0</span>
+                </button>
+                <div class="notification-panel" id="notificationPanel">
+                    <h4>Notifications &amp; Broadcasts</h4>
+                    <div class="notification-item" style="padding: 12px; color: var(--gray-500); text-align: center;">
+                        <i class="fas fa-bell-slash" style="margin-right: 6px;"></i>
+                        <span>No new broadcast notices</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-outline logout-btn" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> <span class="btn-text">Logout</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-link active" data-page="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-link" data-page="pending-requests">
+                <i class="fas fa-clock"></i>
+                <span>Pending Requests</span>
+                <span class="badge-nav" id="pendingBadge">0</span>
+            </a>
+            <a href="#" class="nav-link" data-page="history">
+                <i class="fas fa-history"></i>
+                <span>Request History</span>
+            </a>
+            <a href="#" class="nav-link" data-page="schedule-calendar">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Schedule Calendar</span>
+            </a>
+            <a href="#" class="nav-link" data-page="notices">
+                <i class="fas fa-bullhorn"></i>
+                <span>Notices & Broadcasts</span>
+            </a>
+            <a href="#" class="nav-link logout-link" id="sidebarLogout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Page -->
+        <section id="page-dashboard" class="page active">
+            <h1 class="page-title">Coach Dashboard</h1>
+            <div class="dashboard-cards">
+                <div class="card" data-page="pending-requests" style="cursor: pointer;">
+                    <div class="card-icon orange">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>Pending Requests</h3>
+                    <p class="card-value" id="dashboardPending">0</p>
+                </div>
+                <div class="card" data-page="history" style="cursor: pointer;">
+                    <div class="card-icon green">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Approved Today</h3>
+                    <p class="card-value" id="dashboardApproved">0</p>
+                </div>
+                <div class="card" data-page="pending-requests" style="cursor: pointer;">
+                    <div class="card-icon blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Total Students</h3>
+                    <p class="card-value" id="dashboardStudents">0</p>
+                </div>
+                <div class="card" data-page="schedule-calendar" style="cursor: pointer;">
+                    <div class="card-icon blue">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h3>Upcoming Sessions</h3>
+                    <p class="card-value" id="dashboardSessions">0</p>
+                </div>
+            </div>
+            <div class="recent-activity">
+                <h2><i class="fas fa-bell"></i> Recent Activity</h2>
+                <div class="activity-list" id="recentActivity">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Pending Requests Page -->
+        <section id="page-pending-requests" class="page">
+            <h1 class="page-title">Pending Requests</h1>
+            <div class="page-controls">
+                <div class="search-filter">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="requestSearch" placeholder="Search by student name or ID...">
+                    </div>
+                    <!-- Hidden filterDate to maintain JS compatibility -->
+                    <select id="filterDate" class="filter-select" style="display: none;">
+                        <option value="">All Dates</option>
+                    </select>
+                    <select id="filterTimeSlot" class="filter-select">
+                        <option value="">All Time Slots</option>
+                        <option value="06:00-08:00">06:00 - 08:00</option>
+                        <option value="08:00-10:00">08:00 - 10:00</option>
+                        <option value="10:00-12:00">10:00 - 12:00</option>
+                        <option value="12:00-14:00">12:00 - 14:00</option>
+                        <option value="14:00-16:00">14:00 - 16:00</option>
+                        <option value="16:00-18:00">16:00 - 18:00</option>
+                        <option value="18:00-20:00">18:00 - 20:00</option>
+                    </select>
+                </div>
+            </div>
+            <div class="requests-table-container">
+                <table class="requests-table" id="pendingRequestsTable">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Student ID</th>
+                            <th>Preferred Time</th>
+                            <th>Preferred Coach</th>
+                            <th>Slot Availability</th>
+                            <th>Submitted At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingRequestsBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+                <div class="empty-state" id="noPendingRequests" style="display: none;">
+                    <i class="fas fa-inbox"></i>
+                    <p>No pending requests</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Request History Page -->
+        <section id="page-history" class="page">
+            <h1 class="page-title">Request History</h1>
+            <div class="page-controls">
+                <div class="search-filter">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="historySearch" placeholder="Search by student name or ID...">
+                    </div>
+                    <select id="filterStatus" class="filter-select">
+                        <option value="">All Status</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <input type="date" id="historyDateFrom" class="filter-date">
+                    <input type="date" id="historyDateTo" class="filter-date">
+                    <button class="btn btn-primary" id="applyHistoryFilters">
+                        <i class="fas fa-filter"></i> Apply Filters
+                    </button>
+     <!--   <button class="btn btn-outline" id="clearHistoryFilters">
+                        <i class="fas fa-times"></i> Clear
+                    </button>-->> 
+                     
+                    
+                    
+                </div>
+            </div>
+            <div class="requests-table-container">
+                <table class="requests-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Student ID</th>
+                            <th>Preferred Date</th>
+                            <th>Preferred Time</th>
+                            <th>Preferred Coach</th>
+                            <th>Status</th>
+                            <th>Coach Comment</th>
+                            <th>Schedule PDF</th>
+                            <th>Submitted At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+                <div class="empty-state" id="noHistory" style="display: none;">
+                    <i class="fas fa-history"></i>
+                    <p>No request history</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Schedule Calendar Page -->
+        <section id="page-schedule-calendar" class="page">
+            <h1 class="page-title">Schedule Calendar</h1>
+            <div class="calendar-controls">
+                <button class="btn btn-outline" id="prevWeek">
+                    <i class="fas fa-chevron-left"></i> Previous Week
+                </button>
+                <h3 id="calendarWeekRange">Week View</h3>
+                <button class="btn btn-outline" id="nextWeek">
+                    Next Week <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="schedule-calendar" id="scheduleCalendar">
+                <!-- Will be populated dynamically -->
+            </div>
+        </section>
+
+        <!-- Notices Page -->
+        <section id="page-notices" class="page">
+            <h1 class="page-title">Notices & Broadcast Messages</h1>
+            <div class="page-controls">
+                <button class="btn btn-primary" id="createNoticeBtn">
+                    <i class="fas fa-plus"></i> Create Notice
+                </button>
+            </div>
+            <div class="notice-form-card" id="noticeFormCard">
+                <h3>Create New Notice</h3>
+                <form id="noticeForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Title <span class="required">*</span></label>
+                            <input type="text" id="noticeTitle" placeholder="Notice title" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Visible To <span class="required">*</span></label>
+                            <select id="noticeVisibleTo" required>
+                                <option value="all">All Users</option>
+                                <option value="students">Students Only</option>
+                                <option value="admins">Admin Only</option>
+                                <option value="storekeepers">Storekeepers (Inventory) Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Message <span class="required">*</span></label>
+                        <textarea id="noticeMessage" rows="4" placeholder="Enter your message..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select id="noticePriority">
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Publish Notice
+                    </button>
+                </form>
+            </div>
+            <div class="notices-list-full" style="background: rgba(30, 41, 59, 0) !important;">
+                <h3>Published Notices</h3>
+                <div id="noticesList">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Approval Modal -->
+    <div class="modal" id="approvalModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Approve Request</h3>
+                <button class="modal-close" id="closeApprovalModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="student-info-section">
+                    <h4>Student Information & Request Details</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Name:</label>
+                            <span id="modalStudentName">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Student ID:</label>
+                            <span id="modalStudentId">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Age:</label>
+                            <span id="modalStudentAge">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Height:</label>
+                            <span id="modalStudentHeight">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Weight:</label>
+                            <span id="modalStudentWeight">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Fitness Level:</label>
+                            <span id="modalStudentFitness">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Training Goal:</label>
+                            <span id="modalStudentGoal">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Injury History:</label>
+                            <span id="modalStudentInjury">-</span>
+                        </div>
+                        <div class="info-item" style="display: none;">
+                            <label>Preferred Date:</label>
+                            <span id="modalPreferredDate">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Preferred Time:</label>
+                            <span id="modalPreferredTime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Preferred Coach:</label>
+                            <span id="modalPreferredCoach">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Student Notes:</label>
+                            <div id="modalStudentNotes" class="details-box">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="slot-availability-section">
+                    <h4>Slot Availability</h4>
+                    <div class="availability-info" id="slotAvailabilityInfo">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Checking availability...</span>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-group">
+                        <label>Coach Comment <span class="required">*</span></label>
+                        <textarea id="approvalComment" rows="4" placeholder="Add feedback or instructions for the student..." required></textarea>
+                    </div>
+                    <!-- Exercise Selector Section -->
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label><i class="fas fa-running text-blue"></i> Assign Workout Program <span class="required">*</span></label>
+                        <p class="file-hint" style="margin-bottom: 12px;">Select categories and click exercises below to assign routines to the student.</p>
+                        <div class="exercise-selector-container">
+                            <div class="exercise-category-tabs" id="exerciseCategoryTabs">
+                                <!-- Dynamic Tabs -->
+                            </div>
+                            <div class="exercises-grid" id="exerciseGrid">
+                                <!-- Dynamic Exercise Buttons -->
+                            </div>
+                            <div class="selected-exercises-container" id="selectedExercisesContainer" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <label style="font-size: 0.88rem; font-weight: 600; color: var(--gray-700); margin: 0; display: flex; align-items: center; gap: 6px;">
+                                        <i class="fas fa-clipboard-list text-orange"></i> Assigned Exercises &amp; Sets/Reps Target:
+                                    </label>
+                                    <span id="selectedCountBadge" style="font-size: 0.75rem; background: rgba(37,99,235,0.1); color: var(--blue); padding: 2px 8px; border-radius: 10px; font-weight: 600;">0 selected</span>
+                                </div>
+                                <div class="selected-exercises-list" id="selectedExercisesTags">
+                                    <!-- Dynamic Exercise Config Rows -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 24px;">
+                        <label>Upload Schedule PDF (Optional)</label>
+                        <div class="file-upload-area" id="pdfUploadArea">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Click to upload or drag and drop</p>
+                            <p class="file-hint">PDF files only (Max 5MB)</p>
+                            <input type="file" id="schedulePDF" accept=".pdf" style="display: none;">
+                        </div>
+                        <div class="file-preview" id="pdfPreview" style="display: none;">
+                            <i class="fas fa-file-pdf"></i>
+                            <span id="pdfFileName"></span>
+                            <button class="btn-remove" id="removePDF">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="confirmApproveBtn">
+                        <i class="fas fa-check"></i> Approve Request
+                    </button>
+                    <button class="btn btn-outline" id="cancelApproveBtn">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Modal -->
+    <div class="modal" id="rejectionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Reject Request</h3>
+                <button class="modal-close" id="closeRejectionModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="student-info-section">
+                    <h4>Student Information & Request Details</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Name:</label>
+                            <span id="rejectModalStudentName">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Student ID:</label>
+                            <span id="rejectModalStudentId">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Age:</label>
+                            <span id="rejectModalStudentAge">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Height:</label>
+                            <span id="rejectModalStudentHeight">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Weight:</label>
+                            <span id="rejectModalStudentWeight">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Fitness Level:</label>
+                            <span id="rejectModalStudentFitness">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Training Goal:</label>
+                            <span id="rejectModalStudentGoal">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Injury History:</label>
+                            <span id="rejectModalStudentInjury">-</span>
+                        </div>
+                        <div class="info-item" style="display: none;">
+                            <label>Preferred Date:</label>
+                            <span id="rejectModalPreferredDate">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Preferred Time:</label>
+                            <span id="rejectModalPreferredTime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Preferred Coach:</label>
+                            <span id="rejectModalPreferredCoach">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Student Notes:</label>
+                            <div id="rejectModalStudentNotes" class="details-box">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-group">
+                        <label>Rejection Reason <span class="required">*</span></label>
+                        <textarea id="rejectionComment" rows="4" placeholder="Please provide a reason for rejection..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-danger" id="confirmRejectBtn">
+                        <i class="fas fa-times"></i> Reject Request
+                    </button>
+                    <button class="btn btn-outline" id="cancelRejectBtn">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Details Modal -->
+    <div class="modal" id="viewDetailsModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Request Details</h3>
+                <button class="modal-close" id="closeViewDetailsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="student-info-section">
+                    <h4>Student Information & Request Details</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Name:</label>
+                            <span id="viewModalStudentName">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Student ID:</label>
+                            <span id="viewModalStudentId">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Age:</label>
+                            <span id="viewModalStudentAge">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Height:</label>
+                            <span id="viewModalStudentHeight">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Weight:</label>
+                            <span id="viewModalStudentWeight">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Fitness Level:</label>
+                            <span id="viewModalStudentFitness">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Training Goal:</label>
+                            <span id="viewModalStudentGoal">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Injury History:</label>
+                            <span id="viewModalStudentInjury">-</span>
+                        </div>
+                        <div class="info-item" style="display: none;">
+                            <label>Preferred Date:</label>
+                            <span id="viewModalPreferredDate">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Preferred Time:</label>
+                            <span id="viewModalPreferredTime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Preferred Coach:</label>
+                            <span id="viewModalPreferredCoach">-</span>
+                        </div>
+                        <div class="info-item full-width">
+                            <label>Student Notes:</label>
+                            <div id="viewModalStudentNotes" class="details-box">-</div>
+                        </div>
+                        <div class="info-item full-width" id="viewModalCommentSection" style="display: none;">
+                            <label>Coach Comment:</label>
+                            <div id="viewModalComment" class="details-box">-</div>
+                        </div>
+                        <div class="info-item full-width" id="viewModalPDFSection" style="display: none;">
+                            <label>Schedule PDF:</label>
+                            <a href="#" id="viewModalPDFLink" target="_blank" class="pdf-link">
+                                <i class="fas fa-file-pdf"></i> Download Schedule PDF
+                            </a>
+                        </div>
+                        <div class="info-item full-width" id="viewModalExercisesSection" style="display: none;">
+                            <label>Assigned Workout Plan:</label>
+                            <div id="viewModalExercises" class="details-box" style="display: flex; flex-wrap: wrap; gap: 8px; background: transparent; padding: 0; border: none;">
+                                <!-- Dynamic Selected Badges -->
+                            </div>
+                        </div>
+                        <div id="viewModalProgressSection" style="display: none; margin-top: 16px;">
+                            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--gray-700); margin-bottom: 8px;">
+                                <i class="fas fa-chart-line" style="color: var(--blue); margin-right: 6px;"></i>
+                                Workout Progress
+                            </h4>
+                            <div id="viewModalProgress" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" id="viewModalActions" style="display: none; justify-content: center; gap: 16px; padding: 16px 24px; border-top: 1px solid var(--gray-200); background: var(--gray-50); border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg);">
+                <button type="button" class="btn btn-success" id="viewModalApproveBtn" style="flex: unset; width: 140px; justify-content: center;">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+                <button type="button" class="btn btn-danger" id="viewModalRejectBtn" style="flex: unset; width: 140px; justify-content: center;">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="deleteModalTitle">Confirm Delete</h3>
+                <button class="modal-close" id="closeDeleteModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteModalMessage">Are you sure you want to delete this item?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                <button class="btn btn-outline" id="cancelDeleteBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+        IMPORTANT: Coach Data Isolation
+        ===============================
+        Each coach only sees requests where they are the preferred coach.
+        This is handled in coach.js via filterByCurrentCoach() function.
+        All data views (dashboard, pending, history, calendar) are filtered by coach.
+    -->
+    <script src="js/api.js"></script>
+    <script src="js/coach.js"></script>
+    <script src="js/colombo-clock.js"></script>
+</body>
+</html>

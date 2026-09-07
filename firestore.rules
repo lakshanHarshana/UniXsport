@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isUser(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && request.auth.token.role == role;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if true; // Signup allowed
+      allow update: if isUser(userId) || hasRole('admin');
+      allow delete: if hasRole('admin');
+    }
+
+    // Equipment collection
+    match /equipment/{equipmentId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('admin') || hasRole('storekeeper');
+    }
+
+    // Borrow logs
+    match /borrowLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('storekeeper') || hasRole('admin');
+    }
+
+    // Gym schedule requests
+    match /gymRequests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if hasRole('student');
+      allow update: if hasRole('coach') || hasRole('admin');
+      allow delete: if hasRole('admin');
+    }
+
+    // Workout plans
+    match /workoutPlans/{planId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole('coach') || hasRole('admin');
+    }
+
+    // Notices
+    match /notices/{noticeId} {
+      allow read: if true;
+      allow write: if hasRole('admin');
+    }
+
+    // RFID Logs
+    match /rfidLogs/{scanId} {
+      allow read: if isAuthenticated();
+      allow write: if true; // RFID hardware writes via admin SDK or webhook
+    }
+  }
+}
