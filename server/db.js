@@ -24,32 +24,32 @@ let data = {
 
 /**
  * Server-side auto-generation of unique User ID (format: US001, US002, US003...)
- * Scans existing users and metadata sequence counter to ensure uniqueness and prevent reuse.
+ * Finds the lowest available positive sequence number (fills gaps and releases deleted IDs).
  */
 function generateNextUserId() {
-  if (!data.meta) data.meta = {};
-  let maxSeq = data.meta.lastUserIdSeq || 0;
-
-  (data.users || []).forEach(u => {
+  if (!data.users) data.users = [];
+  
+  // Collect all currently active US numbers in use
+  const activeNumbers = new Set();
+  data.users.forEach(u => {
     const idStr = u.user_id || u.userId;
     if (idStr) {
       const m = String(idStr).match(/^US(\d+)$/i);
       if (m) {
         const num = parseInt(m[1], 10);
-        if (!isNaN(num) && num > maxSeq) maxSeq = num;
+        if (!isNaN(num) && num > 0) activeNumbers.add(num);
       }
     }
   });
 
-  let nextSeq = maxSeq + 1;
-  let candidateId = 'US' + String(nextSeq).padStart(3, '0');
-
-  // Guard against any theoretical collision
-  while ((data.users || []).some(u => (u.user_id === candidateId || u.userId === candidateId))) {
+  // Find the lowest available sequence number starting from 1 (US001, US002, US003...)
+  let nextSeq = 1;
+  while (activeNumbers.has(nextSeq)) {
     nextSeq++;
-    candidateId = 'US' + String(nextSeq).padStart(3, '0');
   }
 
+  const candidateId = 'US' + String(nextSeq).padStart(3, '0');
+  if (!data.meta) data.meta = {};
   data.meta.lastUserIdSeq = nextSeq;
   saveDatabase();
   return candidateId;
