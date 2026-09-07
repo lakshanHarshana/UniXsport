@@ -1115,62 +1115,41 @@ async function loadCoachesDropdown() {
     const select = document.getElementById('reqScheduleCoachSelect');
     if (!select) return;
 
+    const defaultExistingCoaches = [
+        { id: 'usr_coach1', user_id: 'US005', name: 'Mike', department: 'Physical Education' },
+        { id: 'usr_coach2', user_id: 'US006', name: 'Sarah', department: 'Strength & Conditioning' },
+        { id: 'usr_coach3', user_id: 'US007', name: 'John', department: 'Athletics' }
+    ];
+
+    let coaches = [];
     try {
-        const endpoints = [
-            '/api/student/coaches',
-            'http://localhost:5000/api/student/coaches',
-            'http://127.0.0.1:5000/api/student/coaches'
-        ];
-
-        let coaches = [];
-        const token = getUniXsportToken();
-
-        for (const ep of endpoints) {
-            try {
-                const res = await fetch(ep, {
-                    headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.success && Array.isArray(data.coaches) && data.coaches.length > 0) {
-                        coaches = data.coaches;
-                        break;
-                    }
-                }
-            } catch(err) {}
-        }
-
-        const defaultExistingCoaches = [
-            { id: 'usr_coach1', user_id: 'US005', name: 'Mike', department: 'Physical Education' },
-            { id: 'usr_coach2', user_id: 'US006', name: 'Sarah', department: 'Strength & Conditioning' },
-            { id: 'usr_coach3', user_id: 'US007', name: 'John', department: 'Athletics' }
-        ];
-
-        const listToRender = coaches.length > 0 ? coaches : defaultExistingCoaches;
-
-        // Save previously selected value if any
-        const currentSelected = select.value;
-
-        select.innerHTML = '<option value="">Select Coach...</option><option value="Any Coach">Any Coach (First Available)</option>';
-
-        listToRender.forEach(c => {
-            const option = document.createElement('option');
-            const cleanName = String(c.name || '').replace(/^coach\s+/i, '').trim();
-            const coachTitle = `Coach ${cleanName}`;
-            option.value = coachTitle;
-            option.setAttribute('data-coach-id', c.id || c.user_id || c.userId || '');
-            option.setAttribute('data-coach-name', cleanName);
-            option.setAttribute('data-coach-email', c.email || '');
-            option.textContent = `${coachTitle} (${c.department || 'Sports Directorate'})`;
-            select.appendChild(option);
-        });
-
-        // Restore selection if still valid
-        if (currentSelected && select.querySelector(`option[value="${currentSelected}"]`)) {
-            select.value = currentSelected;
+        const data = await fetchStudentAPI('/api/student/coaches');
+        if (data && data.success && Array.isArray(data.coaches) && data.coaches.length > 0) {
+            coaches = data.coaches;
         }
     } catch(e) {
-        console.warn('Failed to load coaches from database:', e);
+        console.warn('Backend coaches fetch note:', e);
+    }
+
+    const listToRender = (coaches && coaches.length > 0) ? coaches : defaultExistingCoaches;
+    const currentSelected = select.value;
+
+    select.innerHTML = '<option value="">Select Coach...</option><option value="Any Coach">Any Coach (First Available)</option>';
+
+    listToRender.forEach(c => {
+        const cleanName = String(c.name || '').replace(/^coach\s+/i, '').trim();
+        const coachTitle = `Coach ${cleanName}`;
+        const option = document.createElement('option');
+        option.value = coachTitle;
+        option.setAttribute('data-coach-id', c.id || c.user_id || c.userId || '');
+        option.setAttribute('data-coach-name', cleanName);
+        option.setAttribute('data-coach-email', c.email || '');
+        option.textContent = `${coachTitle} (${c.department || 'Sports Directorate'})`;
+        select.appendChild(option);
+    });
+
+    if (currentSelected && select.querySelector(`option[value="${currentSelected}"]`)) {
+        select.value = currentSelected;
     }
 }
 
@@ -1237,53 +1216,26 @@ function initRequestScheduleForm() {
         };
 
         try {
-            let apiSuccess = false;
-            let errorMessage = '';
+            const data = await fetchStudentAPI('/api/student/schedule-request', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
 
-            const endpoints = [
-                '/api/student/schedule-request',
-                'http://localhost:5000/api/student/schedule-request',
-                'http://127.0.0.1:5000/api/student/schedule-request'
-            ];
+            if (data && data.success) {
+                showToast('✓ Schedule request submitted successfully to database!', 'success');
+                form.reset();
+                if (typeof loadProfileFromStorage === 'function') await loadProfileFromStorage();
+                await initMySchedule();
+                await updateStudentDashboardStats();
 
-            for (const ep of endpoints) {
-                try {
-                    const token = getUniXsportToken();
-                    const res = await fetch(ep, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    const parsed = await res.json();
-                    if (res.ok && parsed.success) {
-                        apiSuccess = true;
-                        break;
-                    } else if (parsed && parsed.error) {
-                        errorMessage = parsed.error;
-                        break;
-                    }
-                } catch (e) {}
+                // Switch to My Training (Sessions tab)
+                document.querySelector('.nav-link[data-page="my-training"]')?.click();
+            } else {
+                showToast(data?.error || 'Failed to submit schedule request.', 'error');
             }
-
-            if (!apiSuccess && errorMessage) {
-                showToast(errorMessage, 'error');
-                return;
-            }
-
-            showToast('✓ Schedule request submitted successfully to database!', 'success');
-            form.reset();
-            if (typeof loadProfileFromStorage === 'function') await loadProfileFromStorage();
-            await initMySchedule();
-            await updateStudentDashboardStats();
-
-            // Switch to My Training (Sessions tab)
-            document.querySelector('.nav-link[data-page="my-training"]')?.click();
         } catch (err) {
             console.error('Schedule submit error:', err);
-            showToast('Failed to submit schedule request. Please try again.', 'error');
+            showToast(err.message || 'Failed to submit schedule request. Please try again.', 'error');
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;

@@ -269,6 +269,16 @@
       "targetCoachId": "US006",
       "createdBy": "System",
       "createdAt": "2026-09-07T20:39:55.922Z"
+    },
+    {
+      "id": "not_1788814301206",
+      "title": "New Gym Schedule Request",
+      "message": "Kasun Bandara submitted a gym schedule request for 2026-10-20 (10:00-12:00)",
+      "priority": "normal",
+      "visibleTo": "US006",
+      "targetCoachId": "US006",
+      "createdBy": "System",
+      "createdAt": "2026-09-07T20:51:41.206Z"
     }
   ],
   "facilities": [
