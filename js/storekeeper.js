@@ -1904,6 +1904,7 @@ async function confirmAddEquipment() {
 
     const name     = document.getElementById('newEquipmentName')?.value.trim();
     const category = document.getElementById('newEquipmentCategory')?.value.trim();
+    const room     = document.getElementById('newEquipmentRoom')?.value.trim() || 'Main Gym Hall';
     const quantity = parseInt(document.getElementById('newEquipmentQuantity')?.value) || 0;
     const rfid     = document.getElementById('newEquipmentRFID')?.value.trim();
 
@@ -1921,7 +1922,9 @@ async function confirmAddEquipment() {
             name,
             category,
             totalQty: quantity,
-            room: 'Main Gym Hall',
+            room: room,
+            location: room,
+            sportsRoom: room,
             rfidTag: rfid || ''
         });
 
@@ -1931,6 +1934,7 @@ async function confirmAddEquipment() {
         }
 
         const item = data.item;
+        const assignedRoom = item.room || item.location || item.sportsRoom || room;
         // Avoid duplicate push if already present in equipmentStock
         const exists = equipmentStock.some(e => String(e.id).toLowerCase() === String(item.id).toLowerCase());
         if (!exists) {
@@ -1945,8 +1949,9 @@ async function confirmAddEquipment() {
                 borrowed:  item.borrowedQty || 0,
                 damaged:   item.damagedQty  || 0,
                 status:    item.status,
-                sportsRoom: item.room || 'Main Gym Hall',
-                room:      item.room || 'Main Gym Hall',
+                sportsRoom: assignedRoom,
+                location:   assignedRoom,
+                room:       assignedRoom,
                 rfidTag:   item.rfidTag || ''
             });
         }
@@ -1955,6 +1960,9 @@ async function confirmAddEquipment() {
         // Clear form
         document.getElementById('newEquipmentName').value     = '';
         document.getElementById('newEquipmentCategory').value = '';
+        if (document.getElementById('newEquipmentRoom')) {
+            document.getElementById('newEquipmentRoom').value = 'Main Gym Hall';
+        }
         document.getElementById('newEquipmentQuantity').value = '1';
         document.getElementById('newEquipmentRFID').value     = '';
 
@@ -2083,6 +2091,7 @@ function renderStockTable() {
         }
 
         const safeId = String(eq.id).replace(/'/g, "\\'");
+        const roomDisp = eq.sportsRoom || eq.location || eq.room || '';
 
         return `
             <tr>
@@ -2091,7 +2100,7 @@ function renderStockTable() {
                     <div style="font-size: 0.8rem; color: var(--gray-500); display: flex; gap: 8px; align-items: center; margin-top: 2px;">
                         <span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--blue); font-weight: 600; padding: 2px 6px;">${eq.id}</span>
                         <span>${eq.category || 'General Sports'}</span>
-                        ${eq.sportsRoom ? `<span>• ${eq.sportsRoom}</span>` : ''}
+                        ${roomDisp ? `<span>• ${roomDisp}</span>` : ''}
                     </div>
                 </td>
                 <td style="font-weight: 600; font-size: 0.95rem;">${total}</td>
@@ -2119,10 +2128,10 @@ function openEditEquipmentModal(id) {
     const idDisplay      = document.getElementById('editEquipmentIdDisplay');
     const nameInput      = document.getElementById('editEquipmentName');
     const catInput       = document.getElementById('editEquipmentCategory');
+    const roomInput      = document.getElementById('editEquipmentRoom');
     const totalInput     = document.getElementById('editEquipmentTotalQty');
     const damagedInput   = document.getElementById('editEquipmentDamagedQty');
     const availInput     = document.getElementById('editEquipmentAvailableQty');
-    const roomInput      = document.getElementById('editEquipmentRoom');
     const statusInput    = document.getElementById('editEquipmentStatus');
     const rfidInput      = document.getElementById('editEquipmentRFID');
 
@@ -2134,13 +2143,13 @@ function openEditEquipmentModal(id) {
     if (idDisplay)    idDisplay.value    = `${item.id} - ${item.name}`;
     if (nameInput)    nameInput.value    = item.name || '';
     if (catInput)     catInput.value     = item.category || '';
+    if (roomInput)    roomInput.value    = item.sportsRoom || item.location || item.room || '';
     if (totalInput)   totalInput.value   = total;
     if (damagedInput) damagedInput.value = damaged;
     if (availInput) {
         availInput.value = available;
         availInput.style.color = available === 0 ? '#ef4444' : available <= 2 ? '#f59e0b' : '#16a34a';
     }
-    if (roomInput)    roomInput.value    = item.sportsRoom || item.room || '';
     if (statusInput)  statusInput.value  = item.status || 'available';
     if (rfidInput)    rfidInput.value    = item.rfidTag || item.rfidCode || item.rfid || '';
 
@@ -2156,6 +2165,7 @@ async function confirmUpdateEquipment() {
     const id         = document.getElementById('editEquipmentId')?.value;
     const name       = document.getElementById('editEquipmentName')?.value.trim();
     const category   = document.getElementById('editEquipmentCategory')?.value.trim();
+    const room       = document.getElementById('editEquipmentRoom')?.value.trim() || 'Main Gym Hall';
     const totalQty   = parseInt(document.getElementById('editEquipmentTotalQty')?.value);
     let damagedQty   = parseInt(document.getElementById('editEquipmentDamagedQty')?.value);
     const status     = document.getElementById('editEquipmentStatus')?.value;
@@ -2187,7 +2197,9 @@ async function confirmUpdateEquipment() {
             totalQty,
             damagedQty,
             availableQty: availQty,
-            room: 'Main Gym Hall',
+            room: room,
+            location: room,
+            sportsRoom: room,
             status: status || 'available',
             rfidTag: rfidTag || ''
         });
@@ -2198,6 +2210,7 @@ async function confirmUpdateEquipment() {
         }
 
         const updated = data.item;
+        const assignedRoom = updated.room || updated.location || updated.sportsRoom || room;
         // Update local equipmentStock
         const idx = equipmentStock.findIndex(e => String(e.id) === String(id));
         if (idx !== -1) {
@@ -2210,7 +2223,9 @@ async function confirmUpdateEquipment() {
                 available: updated.availableQty !== undefined ? updated.availableQty : updated.available,
                 borrowed: updated.borrowedQty || 0,
                 status: updated.status,
-                sportsRoom: updated.room || 'Main Gym Hall',
+                sportsRoom: assignedRoom,
+                location: assignedRoom,
+                room: assignedRoom,
                 rfidTag: updated.rfidTag || ''
             };
         }

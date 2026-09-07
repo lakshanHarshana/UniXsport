@@ -21,7 +21,25 @@
       "password": "password"
     }
   ],
-  "equipment": [],
+  "equipment": [
+    {
+      "id": "EQP001",
+      "name": "Cricket Helmets Test",
+      "category": "Cricket",
+      "totalQty": 10,
+      "availableQty": 10,
+      "borrowedQty": 0,
+      "damagedQty": 0,
+      "status": "available",
+      "room": "Ground_store",
+      "sportsRoom": "Ground_store",
+      "location": "Ground_store",
+      "rfidTag": "",
+      "rfidCode": "",
+      "rfid": "",
+      "description": ""
+    }
+  ],
   "borrowLogs": [],
   "gymRequests": [],
   "workoutPlans": [],
@@ -88,14 +106,60 @@
       "iconClass": "fa-couch"
     }
   ],
-  "events": [],
+  "events": [
+    {
+      "id": "evt_01",
+      "title": "Inter-Faculty Sports Meet 2026",
+      "description": "Showcase your athletic talents in this exciting multi-sport tournament featuring track, volleyball, and badminton.",
+      "date": "2026-09-15",
+      "day": "15",
+      "month": "SEP",
+      "location": "Sports Complex",
+      "participants": "200+ participants",
+      "category": "sports"
+    },
+    {
+      "id": "evt_02",
+      "title": "Fitness & Conditioning Workshop",
+      "description": "Learn professional fitness techniques from certified trainers. Sessions cover strength training, nutrition, and injury prevention.",
+      "date": "2026-09-20",
+      "day": "20",
+      "month": "SEP",
+      "location": "Main Gym",
+      "participants": "50 spots available",
+      "category": "training"
+    },
+    {
+      "id": "evt_03",
+      "title": "Annual Campus Marathon",
+      "description": "Join the 5K and 10K runs around the campus. A fun event to improve endurance and build community spirit.",
+      "date": "2026-09-25",
+      "day": "25",
+      "month": "SEP",
+      "location": "Campus Grounds",
+      "participants": "All welcome",
+      "category": "marathon"
+    },
+    {
+      "id": "evt_04",
+      "title": "Wellness & Health Fair",
+      "description": "Free health check-ups, nutrition counseling, and wellness seminars. Meet our team of certified fitness professionals.",
+      "date": "2026-09-28",
+      "day": "28",
+      "month": "SEP",
+      "location": "Main Hall",
+      "participants": "Free entry",
+      "category": "wellness"
+    }
+  ],
   "rfidScans": [],
   "sessions": [],
   "contactMessages": [],
   "meta": {
     "lastCleaned": "2026-09-07T15:35:49.692Z",
     "version": "1.0.0-clean",
-    "system": "UniXsport University Management Platform"
+    "system": "UniXsport University Management Platform",
+    "lastUserIdSeq": 1
   },
   "latestRfidScan": null
 }

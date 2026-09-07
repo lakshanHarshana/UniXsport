@@ -440,6 +440,7 @@ router.post('/equipment', (req, res) => {
   }
 
   const qty = parseInt(totalQty) || 1;
+  const locVal = (location || sportsRoom || room || 'Main Gym Hall').trim();
   const newEquip = {
     id: 'eqp_' + Date.now(),
     name,
@@ -449,8 +450,9 @@ router.post('/equipment', (req, res) => {
     borrowedQty: 0,
     damagedQty: 0,
     status: 'available',
-    sportsRoom: sportsRoom || location || 'Main Gym Hall',
-    location: location || sportsRoom || 'Building A',
+    sportsRoom: locVal,
+    location: locVal,
+    room: locVal,
     description: description || '',
     rfidTag: cleanRfid,
     rfidCode: cleanRfid
@@ -475,7 +477,7 @@ router.patch('/equipment/:id', (req, res) => {
     return res.status(404).json({ success: false, error: 'Equipment not found.' });
   }
 
-  const { name, category, totalQty, availableQty, borrowedQty, damagedQty, status, sportsRoom, location, rfidTag } = req.body;
+  const { name, category, totalQty, availableQty, borrowedQty, damagedQty, status, sportsRoom, location, room, rfidTag } = req.body;
 
   if (rfidTag !== undefined) {
     const cleanRfid = (rfidTag || '').trim().toUpperCase();
@@ -521,8 +523,13 @@ router.patch('/equipment/:id', (req, res) => {
   if (borrowedQty !== undefined) eq.borrowedQty = parseInt(borrowedQty) || eq.borrowedQty;
   if (damagedQty !== undefined) eq.damagedQty = parseInt(damagedQty) || eq.damagedQty;
   if (status !== undefined) eq.status = status;
-  if (sportsRoom !== undefined) eq.sportsRoom = sportsRoom;
-  if (location !== undefined) eq.location = location;
+  const locVal = location !== undefined ? location : (sportsRoom !== undefined ? sportsRoom : room);
+  if (locVal !== undefined) {
+    const trimmedLoc = String(locVal).trim();
+    eq.sportsRoom = trimmedLoc;
+    eq.location = trimmedLoc;
+    eq.room = trimmedLoc;
+  }
 
   saveDatabase();
 

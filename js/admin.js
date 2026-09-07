@@ -91,14 +91,16 @@ async function loadAdminData() {
                     id: e.id,
                     name: e.name,
                     category: e.category || 'Sports Equipment',
-                    sportsRoom: e.sportsRoom || e.location || 'Main Gym Hall',
-                    roomName: e.sportsRoom || e.location || 'Main Gym Hall',
+                    location: e.location || e.sportsRoom || e.room || 'Main Gym Hall',
+                    sportsRoom: e.sportsRoom || e.location || e.room || 'Main Gym Hall',
+                    roomName: e.location || e.sportsRoom || e.room || 'Main Gym Hall',
                     quantity: e.totalQty || e.availableQty || e.available || 1,
                     total: e.totalQty || e.availableQty || e.available || 1,
                     available: e.availableQty !== undefined ? e.availableQty : (e.available !== undefined ? e.available : 0),
                     borrowed: e.borrowedQty !== undefined ? e.borrowedQty : (e.borrowed !== undefined ? e.borrowed : 0),
                     damaged: e.damagedQty !== undefined ? e.damagedQty : (e.damaged !== undefined ? e.damaged : 0),
-                    status: e.status || 'available'
+                    status: e.status || 'available',
+                    description: e.description || ''
                 }));
 
                 notices = res.notices || [];
@@ -628,6 +630,7 @@ function renderEquipment() {
     tbody.innerHTML = filtered.map(e => `
         <tr>
             <td><strong>${e.name}</strong></td>
+            <td><span class="badge" style="background: rgba(59, 130, 246, 0.1); color: var(--blue); font-weight: 600; padding: 4px 8px; border-radius: 4px;">${e.location || e.sportsRoom || 'Main Gym Hall'}</span></td>
             <td>${e.quantity}</td>
             <td>${e.available}</td>
             <td><span class="status-badge ${e.status}">${e.status}</span></td>
@@ -1213,14 +1216,12 @@ document.getElementById('addEquipmentBtn')?.addEventListener('click', () => {
     document.getElementById('equipmentModalTitle').textContent = 'Add Equipment';
     document.getElementById('equipmentForm').reset();
     document.getElementById('equipmentId').value = '';
-    const roomSelect = document.getElementById('equipmentRoom');
-    roomSelect.innerHTML = '<option value="">Select room...</option>';
-    sportsRooms.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.textContent = r.name;
-        roomSelect.appendChild(opt);
-    });
+    if (document.getElementById('equipmentLocation')) {
+        document.getElementById('equipmentLocation').value = 'Main Gym Hall';
+    }
+    document.getElementById('equipmentQuantity').value = '1';
+    document.getElementById('equipmentStatus').value = 'available';
+    document.getElementById('equipmentDescription').value = '';
     document.getElementById('equipmentModal').classList.add('show');
 });
 
@@ -1236,6 +1237,7 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
     e.preventDefault();
     const id = document.getElementById('equipmentId').value.trim();
     const name = document.getElementById('equipmentName').value.trim();
+    const location = document.getElementById('equipmentLocation')?.value.trim() || 'Main Gym Hall';
     const quantity = parseInt(document.getElementById('equipmentQuantity').value) || 0;
     const status = document.getElementById('equipmentStatus').value;
 
@@ -1251,6 +1253,9 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
         if (id) {
             await window.UniXsportAPI.updateEquipmentAdmin(id, {
                 name,
+                location,
+                sportsRoom: location,
+                room: location,
                 totalQty: quantity,
                 availableQty: status === 'available' ? quantity : 0,
                 borrowedQty: status === 'borrowed' ? quantity : 0,
@@ -1263,6 +1268,9 @@ document.getElementById('equipmentForm')?.addEventListener('submit', async e => 
             await window.UniXsportAPI.addEquipmentAdmin({
                 name,
                 category: 'Sports Equipment',
+                location,
+                sportsRoom: location,
+                room: location,
                 totalQty: quantity,
                 description: document.getElementById('equipmentDescription')?.value || ''
             });
@@ -1291,6 +1299,9 @@ function editEquipment(id) {
     document.getElementById('equipmentModalTitle').textContent = 'Edit Equipment';
     document.getElementById('equipmentId').value = eq.id;
     document.getElementById('equipmentName').value = eq.name;
+    if (document.getElementById('equipmentLocation')) {
+        document.getElementById('equipmentLocation').value = eq.location || eq.sportsRoom || 'Main Gym Hall';
+    }
     document.getElementById('equipmentQuantity').value = eq.quantity || eq.total || 1;
     document.getElementById('equipmentStatus').value = eq.status || 'available';
     document.getElementById('equipmentDescription').value = eq.description || '';

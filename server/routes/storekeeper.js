@@ -372,7 +372,7 @@ router.post('/return-item', (req, res) => {
  * @desc    Add new equipment category / inventory item
  */
 router.post('/add-equipment', (req, res) => {
-  const { name, category, totalQty, room, rfidTag, description } = req.body;
+  const { name, category, totalQty, room, location, sportsRoom, rfidTag, description } = req.body;
 
   if (!name || !totalQty) {
     return res.status(400).json({ success: false, error: 'Equipment Name and Total Quantity are required.' });
@@ -417,6 +417,8 @@ router.post('/add-equipment', (req, res) => {
   const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
   const newId = 'EQP' + String(nextNum).padStart(3, '0');
 
+  const locVal = (room || location || sportsRoom || 'Main Gym Hall').trim();
+
   const newItem = {
     id: newId,
     name,
@@ -426,7 +428,9 @@ router.post('/add-equipment', (req, res) => {
     borrowedQty: 0,
     damagedQty: 0,
     status: 'available',
-    room: room || 'Main Gym Hall',
+    room: locVal,
+    sportsRoom: locVal,
+    location: locVal,
     rfidTag: cleanRfid,
     rfidCode: cleanRfid,
     rfid: cleanRfid,
@@ -445,7 +449,7 @@ router.post('/add-equipment', (req, res) => {
  */
 router.post('/update-equipment', (req, res) => {
   try {
-    const { id, name, category, totalQty, damagedQty, availableQty, room, status, rfidTag, description } = req.body;
+    const { id, name, category, totalQty, damagedQty, availableQty, room, location, sportsRoom, status, rfidTag, description } = req.body;
 
     if (!id) {
       return res.status(400).json({ success: false, error: 'Equipment ID is required.' });
@@ -458,7 +462,13 @@ router.post('/update-equipment', (req, res) => {
 
     if (name !== undefined && name.trim()) item.name = name.trim();
     if (category !== undefined && category.trim()) item.category = category.trim();
-    if (room !== undefined) item.room = room.trim();
+    const locVal = room !== undefined ? room : (location !== undefined ? location : sportsRoom);
+    if (locVal !== undefined) {
+      const trimmedLoc = String(locVal).trim();
+      item.room = trimmedLoc;
+      item.sportsRoom = trimmedLoc;
+      item.location = trimmedLoc;
+    }
     if (description !== undefined) item.description = description;
 
     let parsedTotal = item.totalQty !== undefined ? item.totalQty : (item.total || 0);
