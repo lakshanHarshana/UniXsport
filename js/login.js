@@ -120,6 +120,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('user_id', apiRes.user.user_id || apiRes.user.userId || '');
                 localStorage.setItem('userId', apiRes.user.user_id || apiRes.user.userId || '');
 
+                const userPhoto = apiRes.user.profilePhoto || apiRes.user.profileImage || apiRes.user.avatarUrl || '';
+                if (userPhoto) {
+                    localStorage.setItem('unixsport_profile_photo_' + finalUserName.replace(/\//g, '_'), userPhoto);
+                    if (apiRes.user.regNo) {
+                        localStorage.setItem('unixsport_profile_photo_' + apiRes.user.regNo.replace(/\//g, '_'), userPhoto);
+                    }
+                }
+
+                // If student, sync full profile object to profileKey
+                if (normalizedRole === 'student') {
+                    const profileKey = 'unixsport_profile_' + finalUserName.replace(/\//g, '_');
+                    localStorage.setItem(profileKey, JSON.stringify(apiRes.user));
+                    if (apiRes.user.regNo) {
+                        localStorage.setItem('unixsport_profile_' + apiRes.user.regNo.replace(/\//g, '_'), JSON.stringify(apiRes.user));
+                    }
+                }
+
                 showToast('Authentication successful! Redirecting...', 'success');
 
                 const roleToFile = {

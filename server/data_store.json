@@ -83,6 +83,38 @@
       "profilePhoto": "/uploads/avatars/student_US003_1788808730983.png",
       "createdAt": "2026-09-07T19:18:50.908Z",
       "updatedAt": "2026-09-07T19:18:50.983Z"
+    },
+    {
+      "id": "usr_1788809483872_gv42d",
+      "user_id": "US004",
+      "userId": "US004",
+      "regNo": "2022/ICT/99",
+      "username": "2022/ICT/99",
+      "name": "DevSync Student Updated",
+      "email": "devsync.student@rjt.ac.lk",
+      "phone": "",
+      "gender": "",
+      "year": "",
+      "faculty": "Technology",
+      "department": "Technology",
+      "age": "23",
+      "height": "180",
+      "weight": "75",
+      "fitnessLevel": "Advanced",
+      "injuryHistory": "None",
+      "trainingGoal": "Build Muscle",
+      "bio": "Updated bio from mobile phone!",
+      "passwordHash": "$2a$10$vEbprWIBKFYTbKeOW7eum.2bAdkrSruxvy3s6Lio4./0nA.DGqQzS",
+      "password": "password123",
+      "role": "student",
+      "rfidTag": "",
+      "rfidCode": "",
+      "status": "active",
+      "avatarUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "profileImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "profilePhoto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "createdAt": "2026-09-07T19:31:23.872Z",
+      "updatedAt": "2026-09-07T19:31:23.951Z"
     }
   ],
   "equipment": [
@@ -253,6 +285,18 @@
       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA4NzMwOTA4XzYxdXNuIiwidXNlcl9pZCI6IlVTMDAzIiwidXNlcklkIjoiVVMwMDMiLCJyZWdObyI6IklUVC8yMDIzLzIwMCIsIm5hbWUiOiJTYW1hbiBLdW1hcmEiLCJlbWFpbCI6InNhbWFuLmtAcmp0LmFjLmxrIiwicm9sZSI6InN0dWRlbnQiLCJkZXBhcnRtZW50IjoiVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDg3MzEsImV4cCI6MTc4ODg5NTEzMX0.IDa0iLoY5-TDu0i6Cv3y5C5CARlktey3RIIEKetcu1g",
       "loggedInAt": "2026-09-07T19:18:51.058Z",
       "revoked": false
+    },
+    {
+      "userId": "usr_1788809483872_gv42d",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA5NDgzODcyX2d2NDJkIiwidXNlcl9pZCI6IlVTMDA0IiwidXNlcklkIjoiVVMwMDQiLCJyZWdObyI6IjIwMjIvSUNULzk5IiwibmFtZSI6IkRldlN5bmMgU3R1ZGVudCIsImVtYWlsIjoiZGV2c3luYy5zdHVkZW50QHJqdC5hYy5sayIsInJvbGUiOiJzdHVkZW50IiwiZGVwYXJ0bWVudCI6IlRlY2hub2xvZ3kiLCJyZmlkVGFnIjoiIiwiaWF0IjoxNzg4ODA5NDgzLCJleHAiOjE3ODg4OTU4ODN9.M1eWkKCK_wbdPR8Kw21onTXsPG9UZbabIPEFyhFtCP4",
+      "loggedInAt": "2026-09-07T19:31:23.937Z",
+      "revoked": false
+    },
+    {
+      "userId": "usr_1788809483872_gv42d",
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InVzcl8xNzg4ODA5NDgzODcyX2d2NDJkIiwidXNlcl9pZCI6IlVTMDA0IiwidXNlcklkIjoiVVMwMDQiLCJyZWdObyI6IjIwMjIvSUNULzk5IiwibmFtZSI6IkRldlN5bmMgU3R1ZGVudCBVcGRhdGVkIiwiZW1haWwiOiJkZXZzeW5jLnN0dWRlbnRAcmp0LmFjLmxrIiwicm9sZSI6InN0dWRlbnQiLCJkZXBhcnRtZW50IjoiVGVjaG5vbG9neSIsInJmaWRUYWciOiIiLCJpYXQiOjE3ODg4MDk0ODQsImV4cCI6MTc4ODg5NTg4NH0.x_8HS4pPzqKZPNyCO4kiOKAeqen7uI9_BzkG2CbmrIs",
+      "loggedInAt": "2026-09-07T19:31:24.014Z",
+      "revoked": false
     }
   ],
   "contactMessages": [],
@@ -260,7 +304,7 @@
     "lastCleaned": "2026-09-07T15:35:49.692Z",
     "version": "1.0.0-clean",
     "system": "UniXsport University Management Platform",
-    "lastUserIdSeq": 3
+    "lastUserIdSeq": 4
   },
   "latestRfidScan": null
 }

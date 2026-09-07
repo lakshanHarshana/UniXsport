@@ -242,9 +242,24 @@ router.post('/login', async (req, res) => {
         regNo: user.regNo,
         name: user.name,
         email: user.email,
+        phone: user.phone || '',
+        gender: user.gender || '',
+        year: user.year || '',
         role: user.role,
-        department: user.department,
-        rfidTag: user.rfidTag
+        department: user.department || user.faculty || 'Technology',
+        faculty: user.faculty || user.department || 'Technology',
+        rfidTag: user.rfidTag || '',
+        age: user.age || '',
+        height: user.height || '',
+        weight: user.weight || '',
+        fitnessLevel: user.fitnessLevel || 'Not Set',
+        injuryHistory: user.injuryHistory || 'None',
+        trainingGoal: user.trainingGoal || 'General Fitness',
+        bio: user.bio || 'Member of Rajarata University Sports & Gym Club.',
+        profilePhoto: user.profilePhoto || user.profileImage || user.avatarUrl || '',
+        profileImage: user.profileImage || user.profilePhoto || user.avatarUrl || '',
+        avatarUrl: user.avatarUrl || user.profilePhoto || user.profileImage || '',
+        status: user.status || 'active'
       }
     });
   } catch (err) {
@@ -294,11 +309,24 @@ router.get('/me', authenticateToken, (req, res) => {
       regNo: user.regNo,
       name: user.name,
       email: user.email,
+      phone: user.phone || '',
+      gender: user.gender || '',
+      year: user.year || '',
       role: user.role,
-      department: user.department,
-      rfidTag: user.rfidTag,
-      avatarUrl: user.avatarUrl,
-      status: user.status
+      department: user.department || user.faculty || 'Technology',
+      faculty: user.faculty || user.department || 'Technology',
+      rfidTag: user.rfidTag || '',
+      age: user.age || '',
+      height: user.height || '',
+      weight: user.weight || '',
+      fitnessLevel: user.fitnessLevel || 'Not Set',
+      injuryHistory: user.injuryHistory || 'None',
+      trainingGoal: user.trainingGoal || 'General Fitness',
+      bio: user.bio || 'Member of Rajarata University Sports & Gym Club.',
+      profilePhoto: user.profilePhoto || user.profileImage || user.avatarUrl || '',
+      profileImage: user.profileImage || user.profilePhoto || user.avatarUrl || '',
+      avatarUrl: user.avatarUrl || user.profilePhoto || user.profileImage || '',
+      status: user.status || 'active'
     }
   });
 });

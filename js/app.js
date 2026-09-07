@@ -576,6 +576,27 @@ function initEditProfileForm() {
         const userId = form.querySelector('[name="user_id"]')?.value?.trim() || existingData.user_id || existingData.userId || localStorage.getItem('user_id') || 'US002';
         const currentPassword = form.querySelector('[name="currentPassword"]')?.value || '';
         const newPassword = form.querySelector('[name="newPassword"]')?.value || '';
+        const bioVal = form.querySelector('[name="bio"]')?.value?.trim() || existingData.bio || 'Member of Rajarata University Sports & Gym Club.';
+        
+        // Check if there is an active profile photo in storage or existing data
+        const photoKey = 'unixsport_profile_photo_' + (regNo || userName).replace(/\//g, '_');
+        const activePhoto = localStorage.getItem(photoKey) || existingData.profilePhoto || existingData.profileImage || existingData.avatarUrl || '';
+
+        // Check if a new file was chosen in the file input
+        const fileInput = form.querySelector('[name="profilePhoto"]');
+        let selectedFileBase64 = null;
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            try {
+                selectedFileBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => resolve(ev.target.result);
+                    reader.onerror = () => resolve(null);
+                    reader.readAsDataURL(fileInput.files[0]);
+                });
+            } catch (err) {}
+        }
+
+        const finalPhoto = selectedFileBase64 || activePhoto;
 
         // Update profile object
         const updatedData = {
@@ -588,6 +609,10 @@ function initEditProfileForm() {
             faculty: faculty,
             department: faculty,
             name: nameVal,
+            bio: bioVal,
+            profilePhoto: finalPhoto,
+            profileImage: finalPhoto,
+            avatarUrl: finalPhoto,
             age: form.querySelector('[name="age"]')?.value || '',
             height: form.querySelector('[name="height"]')?.value || '',
             weight: form.querySelector('[name="weight"]')?.value || '',
@@ -599,6 +624,19 @@ function initEditProfileForm() {
             currentPassword: currentPassword ? currentPassword.trim() : undefined,
             newPassword: newPassword ? newPassword.trim() : undefined
         };
+
+        // If a new photo file was picked, upload it via dedicated upload endpoint too
+        if (selectedFileBase64) {
+            try {
+                await fetchStudentAPI('/api/student/upload-photo', {
+                    method: 'POST',
+                    body: JSON.stringify({ base64Image: selectedFileBase64, image: selectedFileBase64 })
+                });
+                localStorage.setItem(photoKey, selectedFileBase64);
+            } catch (uploadErr) {
+                console.warn('Photo upload in form submit note:', uploadErr);
+            }
+        }
 
         // 1. Send update to backend database API FIRST
         let updateSuccess = false;
@@ -634,6 +672,10 @@ function initEditProfileForm() {
 
         // 2. Persist confirmed data to storage
         localStorage.setItem(profileKey, JSON.stringify(updatedData));
+        if (regNo && regNo !== userName) {
+            const regProfileKey = 'unixsport_profile_' + regNo.replace(/\//g, '_');
+            localStorage.setItem(regProfileKey, JSON.stringify(updatedData));
+        }
         localStorage.setItem('userRealName', nameVal);
         localStorage.setItem('userName', regNo || nameVal);
         localStorage.setItem('userRegNo', regNo);
@@ -642,6 +684,9 @@ function initEditProfileForm() {
         localStorage.setItem('userDepartment', faculty);
         localStorage.setItem('user_id', userId);
         localStorage.setItem('userId', userId);
+        if (finalPhoto) {
+            localStorage.setItem(photoKey, finalPhoto);
+        }
 
         // Update active student session user object
         try {
@@ -702,16 +747,41 @@ function updateProfileDisplay(data) {
     set('profileEmail', email);
     set('profileFaculty', faculty);
 
+    // Profile Bio
+    const bioEl = document.getElementById('profileBio');
+    if (bioEl) {
+        bioEl.textContent = data.bio || 'Member of Rajarata University Sports & Gym Club.';
+    }
+
+    // Sidebar student name and regNo
+    const sidebarName = document.getElementById('studentName') || document.querySelector('.sidebar-user-name');
+    if (sidebarName && nameVal) sidebarName.textContent = nameVal;
+    const sidebarRegNo = document.getElementById('studentRegNo');
+    if (sidebarRegNo && regNo) sidebarRegNo.textContent = regNo;
+
     // Profile Photo update
-    const photoUrl = data.profilePhoto || data.profileImage || data.avatarUrl;
-    if (photoUrl) {
-        const img = document.getElementById('profileImg');
-        const display = document.getElementById('profilePhotoDisplay');
+    const photoKey = 'unixsport_profile_photo_' + (regNo || userName).replace(/\//g, '_');
+    const photoUrl = data.profilePhoto || data.profileImage || data.avatarUrl || localStorage.getItem(photoKey);
+    const img = document.getElementById('profileImg');
+    const display = document.getElementById('profilePhotoDisplay');
+    const placeholder = display?.querySelector('.placeholder-icon');
+
+    if (photoUrl && photoUrl.trim() !== '') {
         if (img) {
             img.src = photoUrl;
             img.style.display = 'block';
         }
-        display?.querySelector('.placeholder-icon')?.style.setProperty('display', 'none');
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+    } else {
+        if (img) {
+            img.src = '';
+            img.style.display = 'none';
+        }
+        if (placeholder) {
+            placeholder.style.display = 'block';
+        }
     }
 
     // Auto-fill request schedule form fields if present
@@ -736,6 +806,7 @@ async function loadProfileFromStorage() {
 
     const userName = sessionStorage.getItem('userName') || studentUser?.regNo || studentUser?.name || localStorage.getItem('userName') || 'student';
     const profileKey = 'unixsport_profile_' + userName.replace(/\//g, '_');
+    const photoKey = 'unixsport_profile_photo_' + (studentUser?.regNo || userName).replace(/\//g, '_');
     
     let localData = null;
     const saved = localStorage.getItem(profileKey);
@@ -745,6 +816,8 @@ async function loadProfileFromStorage() {
         } catch (e) {}
     }
 
+    const savedPhoto = localStorage.getItem(photoKey) || localData?.profilePhoto || studentUser?.profilePhoto || studentUser?.avatarUrl || '';
+
     // Default fallback from session
     const fallbackProfile = {
         user_id: studentUser?.user_id || studentUser?.userId || sessionStorage.getItem('user_id') || sessionStorage.getItem('userId') || localStorage.getItem('user_id') || localStorage.getItem('userId') || '',
@@ -753,13 +826,15 @@ async function loadProfileFromStorage() {
         email: studentUser?.email || sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || `${userName}@tec.rjt.ac.lk`,
         faculty: studentUser?.department || sessionStorage.getItem('userFaculty') || localStorage.getItem('userFaculty') || 'Technology',
         department: studentUser?.department || sessionStorage.getItem('userFaculty') || localStorage.getItem('userFaculty') || 'Technology',
-        age: '',
-        height: '',
-        weight: '',
-        fitnessLevel: '',
-        injuryHistory: '',
-        trainingGoal: '',
-        profilePhoto: studentUser?.profilePhoto || studentUser?.avatarUrl || ''
+        age: studentUser?.age || '',
+        height: studentUser?.height || '',
+        weight: studentUser?.weight || '',
+        fitnessLevel: studentUser?.fitnessLevel || '',
+        injuryHistory: studentUser?.injuryHistory || '',
+        trainingGoal: studentUser?.trainingGoal || '',
+        bio: studentUser?.bio || 'Member of Rajarata University Sports & Gym Club.',
+        profilePhoto: savedPhoto,
+        avatarUrl: savedPhoto
     };
 
     const initialData = { ...fallbackProfile, ...(localData || {}) };
@@ -770,6 +845,7 @@ async function loadProfileFromStorage() {
         const resData = await fetchStudentAPI('/api/student/profile');
         if (resData && resData.success && resData.user) {
             const dbUser = resData.user;
+            const photo = dbUser.profilePhoto || dbUser.profileImage || dbUser.avatarUrl || savedPhoto;
             const merged = {
                 ...initialData,
                 ...dbUser,
@@ -778,17 +854,23 @@ async function loadProfileFromStorage() {
                 email: dbUser.email || initialData.email,
                 faculty: dbUser.faculty || dbUser.department || initialData.faculty,
                 department: dbUser.department || dbUser.faculty || initialData.department,
-                profilePhoto: dbUser.profilePhoto || dbUser.profileImage || dbUser.avatarUrl || initialData.profilePhoto,
-                avatarUrl: dbUser.avatarUrl || dbUser.profilePhoto || dbUser.profileImage || initialData.profilePhoto
+                bio: dbUser.bio || initialData.bio,
+                profilePhoto: photo,
+                avatarUrl: photo
             };
             localStorage.setItem(profileKey, JSON.stringify(merged));
+            if (merged.regNo && merged.regNo !== userName) {
+                localStorage.setItem('unixsport_profile_' + merged.regNo.replace(/\//g, '_'), JSON.stringify(merged));
+            }
             if (merged.user_id) localStorage.setItem('user_id', merged.user_id);
             if (merged.regNo) localStorage.setItem('userRegNo', merged.regNo);
             if (merged.email) localStorage.setItem('userEmail', merged.email);
             if (merged.faculty) localStorage.setItem('userFaculty', merged.faculty);
-            if (merged.profilePhoto) {
-                const photoKey = 'unixsport_profile_photo_' + (merged.regNo || userName).replace(/\//g, '_');
-                localStorage.setItem(photoKey, merged.profilePhoto);
+            if (photo) {
+                localStorage.setItem(photoKey, photo);
+                if (merged.regNo) {
+                    localStorage.setItem('unixsport_profile_photo_' + merged.regNo.replace(/\//g, '_'), photo);
+                }
             }
             updateProfileDisplay(merged);
         }
@@ -837,6 +919,7 @@ function loadProfileIntoForm() {
     set('weight', data.weight || '');
     set('fitnessLevel', data.fitnessLevel || '');
     set('injuryHistory', data.injuryHistory || '');
+    set('bio', data.bio || '');
     const goalSelect = form.querySelector('[name="trainingGoal"]');
     const goalOther = form.querySelector('[name="trainingGoalOther"]');
     if (data.trainingGoal && !['Build Muscle','Weight Loss','Endurance','General Fitness'].includes(data.trainingGoal)) {
@@ -1268,13 +1351,39 @@ function initProfilePhoto() {
                 display?.querySelector('.placeholder-icon')?.style.setProperty('display', 'none');
                 
                 // Persist locally for instant offline display
+                const regNo = localStorage.getItem('userRegNo') || '';
                 localStorage.setItem(photoKey, base64);
+                if (regNo) {
+                    localStorage.setItem('unixsport_profile_photo_' + regNo.replace(/\//g, '_'), base64);
+                }
+
+                // Update stored profile JSON objects
+                try {
+                    const profileKey = 'unixsport_profile_' + userName.replace(/\//g, '_');
+                    const savedProfile = JSON.parse(localStorage.getItem(profileKey) || '{}');
+                    savedProfile.profilePhoto = base64;
+                    savedProfile.profileImage = base64;
+                    savedProfile.avatarUrl = base64;
+                    localStorage.setItem(profileKey, JSON.stringify(savedProfile));
+
+                    if (regNo) {
+                        const regProfileKey = 'unixsport_profile_' + regNo.replace(/\//g, '_');
+                        localStorage.setItem(regProfileKey, JSON.stringify(savedProfile));
+                    }
+
+                    const studentObj = JSON.parse(sessionStorage.getItem('unixsport_user_student') || localStorage.getItem('unixsport_user_student') || '{}');
+                    studentObj.profilePhoto = base64;
+                    studentObj.profileImage = base64;
+                    studentObj.avatarUrl = base64;
+                    sessionStorage.setItem('unixsport_user_student', JSON.stringify(studentObj));
+                    localStorage.setItem('unixsport_user_student', JSON.stringify(studentObj));
+                } catch(e) {}
                 
                 // Upload to backend database API across all devices
                 try {
                     const res = await fetchStudentAPI('/api/student/upload-photo', {
                         method: 'POST',
-                        body: JSON.stringify({ base64Image: base64, image: base64 })
+                        body: JSON.stringify({ base64Image: base64, image: base64, profilePhoto: base64 })
                     });
                     if (res && res.success) {
                         showToast('Profile photo saved to database successfully!', 'success');

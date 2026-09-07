@@ -719,23 +719,25 @@ router.post('/upload-photo', (req, res) => {
       }
     }
 
-    let savedImageUrl = '';
-    const base64Match = rawImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+    let savedImageUrl = rawImage; // Store base64 data URL directly for universal cross-device / cross-domain compatibility
 
-    if (base64Match) {
-      const rawExt = base64Match[1].toLowerCase();
-      const ext = rawExt === 'jpeg' ? 'jpg' : (rawExt === 'svg+xml' ? 'svg' : rawExt);
-      const buffer = Buffer.from(base64Match[2], 'base64');
-      const filename = `student_${user.user_id || user.regNo || user.id || 'student'}_${Date.now()}.${ext}`;
-      const filePath = path.join(avatarsDir, filename);
-
-      fs.writeFileSync(filePath, buffer);
-      savedImageUrl = `/uploads/avatars/${filename}`;
-    } else {
-      savedImageUrl = rawImage;
+    if (rawImage.startsWith('data:image/')) {
+      const base64Match = rawImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+      if (base64Match) {
+        try {
+          const rawExt = base64Match[1].toLowerCase();
+          const ext = rawExt === 'jpeg' ? 'jpg' : (rawExt === 'svg+xml' ? 'svg' : rawExt);
+          const buffer = Buffer.from(base64Match[2], 'base64');
+          const filename = `student_${user.user_id || user.regNo || user.id || 'student'}_${Date.now()}.${ext}`;
+          const filePath = path.join(avatarsDir, filename);
+          fs.writeFileSync(filePath, buffer);
+        } catch (fileErr) {
+          console.warn('[Storage] File write warning:', fileErr.message);
+        }
+      }
     }
 
-    // Update database record
+    // Update database record with the full image data
     user.profileImage = savedImageUrl;
     user.profilePhoto = savedImageUrl;
     user.avatarUrl = savedImageUrl;
@@ -760,8 +762,8 @@ router.post('/upload-photo', (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Error updating student profile photo:', err);
-    res.status(500).json({ success: false, error: 'Failed to save profile photo in database: ' + err.message });
+    console.error('Photo Upload Error:', err);
+    res.status(500).json({ success: false, error: 'Failed to upload photo: ' + err.message });
   }
 });
 
