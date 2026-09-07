@@ -785,20 +785,26 @@ function initSmartTerminal() {
         const rfidScanPage = document.getElementById('page-rfid-scan');
         if (!rfidScanPage || !rfidScanPage.classList.contains('active')) return;
 
-        try {
-            const res = await fetch('/api/rfid/latest-scan').then(r => r.json());
-            if (res && res.success && res.scan && res.scan.rfidTag) {
-                const scan = res.scan;
-                if (scan.timestamp > terminalLastScanTime && scan.id !== terminalBackgroundLastScanId) {
-                    terminalBackgroundLastScanId = scan.id;
-                    terminalLastScanTime = scan.timestamp;
-                    // Only process student cards (ignore equipment tags scanned at other stations)
-                    if (scan.type !== 'equipment') {
-                        lookupTerminalStudent(scan.rfidTag, true);
+        const candidateHosts = typeof getRfidPollingCandidateHosts === 'function' ? getRfidPollingCandidateHosts() : ['https://unixsport-api.onrender.com', 'http://localhost:5000', ''];
+        for (const host of candidateHosts) {
+            try {
+                const res = await fetch(`${host}/api/rfid/latest-scan`, { cache: 'no-store' }).then(r => r.json());
+                if (res && res.success && res.scan && res.scan.rfidTag) {
+                    const scan = res.scan;
+                    const isNewId = scan.id && scan.id !== terminalBackgroundLastScanId;
+                    const isRecent = scan.timestamp && (Math.abs(Date.now() - scan.timestamp) < 20000);
+                    if (isNewId && isRecent) {
+                        terminalBackgroundLastScanId = scan.id;
+                        terminalLastScanTime = scan.timestamp;
+                        // Only process student cards (ignore equipment tags scanned at other stations)
+                        if (scan.type !== 'equipment') {
+                            lookupTerminalStudent(scan.rfidTag, true);
+                            break;
+                        }
                     }
                 }
-            }
-        } catch(e) {}
+            } catch(e) {}
+        }
     }, 450);
 }
 
@@ -2978,18 +2984,45 @@ async function initRfidAssignmentPage() {
     const btnScanAnother = document.getElementById('btnScanAnotherRfid');
     const btnDone = document.getElementById('btnDoneRfidAssignment');
 
-    let activeRfidEventSource = null;
+    let activeRfidEventSources = [];
     let activeRfidPollingTimer = null;
+    let activeRfidKeydownListener = null;
     let isAssigningInProgress = false;
 
+    function getRfidPollingCandidateHosts() {
+        const list = [];
+        const pushIfNew = (u) => {
+            if (!u || typeof u !== 'string') return;
+            const clean = u.trim().replace(/\/+$/, '');
+            if (clean && !list.includes(clean)) list.push(clean);
+        };
+        if (typeof window !== 'undefined') {
+            if (window.API_BASE_URL) pushIfNew(window.API_BASE_URL);
+            if (typeof getStorekeeperApiBase === 'function') pushIfNew(getStorekeeperApiBase());
+            if (window.location && window.location.origin && window.location.origin.startsWith('http')) {
+                pushIfNew(window.location.origin);
+            }
+        }
+        pushIfNew('https://unixsport-api.onrender.com');
+        pushIfNew('http://localhost:5000');
+        pushIfNew('http://127.0.0.1:5000');
+        return list;
+    }
+
     function stopActiveRfidListeners() {
-        if (activeRfidEventSource) {
-            activeRfidEventSource.close();
-            activeRfidEventSource = null;
+        if (activeRfidEventSources && activeRfidEventSources.length > 0) {
+            activeRfidEventSources.forEach(s => {
+                try { s.close(); } catch(e) {}
+            });
+            activeRfidEventSources = [];
         }
         if (activeRfidPollingTimer) {
             clearInterval(activeRfidPollingTimer);
             activeRfidPollingTimer = null;
+        }
+        if (activeRfidKeydownListener) {
+            window.removeEventListener('keydown', activeRfidKeydownListener);
+            activeRfidKeydownListener = null;
         }
         isAssigningInProgress = false;
     }
@@ -3008,7 +3041,7 @@ async function initRfidAssignmentPage() {
         const badgeText = document.getElementById('modalScannerStatusText');
 
         if (title) title.textContent = type === 'student' ? 'Scan Student RFID Card' : 'Scan Equipment RFID Tag';
-        if (subtext) subtext.innerHTML = `Place the physical RFID card/tag on the ESP32 scanner for <strong>${name}</strong> (${id}).`;
+        if (subtext) subtext.innerHTML = `Place the physical RFID card/tag on the scanner or swipe card for <strong>${name}</strong> (${id}).`;
         if (pulse) pulse.style.display = 'block';
         if (spin) spin.style.display = 'block';
         if (iconBg) {
@@ -3020,29 +3053,35 @@ async function initRfidAssignmentPage() {
         if (uidText) uidText.textContent = '--';
         if (nameText) nameText.textContent = name;
         if (idText) idText.textContent = id;
-        if (badgeText) badgeText.textContent = '🟢 ESP32 Hardware Reader is active and waiting...';
+        if (badgeText) badgeText.textContent = '🟢 Scanner Gateway listening on Wi-Fi, USB, and Cloud...';
 
         if (btnCloseModal) btnCloseModal.style.display = 'inline-block';
         if (btnScanAnother) btnScanAnother.style.display = 'none';
         if (btnDone) btnDone.style.display = 'none';
     }
 
-    function startHardwareRfidAssignment(type) {
+    async function startHardwareRfidAssignment(type) {
         let targetEntity = (type === 'student') ? _currentVerifiedStudent : _currentVerifiedEquipment;
         let targetName = '';
         let targetId = '';
 
         if (type === 'student') {
             if (!targetEntity) {
-                showToast('Please search and verify a student in Section 1 first.', 'error');
-                return;
+                targetEntity = await performStudentSearch(true);
+                if (!targetEntity) {
+                    showToast('Please search and verify a student in Section 1 first.', 'error');
+                    return;
+                }
             }
             targetName = targetEntity.name || 'Student';
             targetId = targetEntity.user_id || targetEntity.regNo || targetEntity.id || 'US002';
         } else {
             if (!targetEntity) {
-                showToast('Please search and verify an equipment item in Section 1 first.', 'error');
-                return;
+                targetEntity = await performEquipmentSearch(true);
+                if (!targetEntity) {
+                    showToast('Please search and verify an equipment item in Section 1 first.', 'error');
+                    return;
+                }
             }
             targetName = targetEntity.name || 'Equipment';
             targetId = targetEntity.id || 'EQP001';
@@ -3054,12 +3093,24 @@ async function initRfidAssignmentPage() {
         stopActiveRfidListeners();
         isAssigningInProgress = false;
 
-        const scanSessionStartTime = Date.now() - 500;
+        const candidateHosts = getRfidPollingCandidateHosts();
+        const initialScanMap = new Map();
+        let lastProcessedScanId = null;
+
+        // Snapshot existing latest-scan IDs from all hosts immediately upon opening
+        await Promise.allSettled(candidateHosts.map(async (host) => {
+            try {
+                const res = await fetch(`${host}/api/rfid/latest-scan`, { cache: 'no-store' }).then(r => r.json());
+                if (res && res.success && res.scan) {
+                    initialScanMap.set(host, res.scan.id);
+                }
+            } catch(e) {}
+        }));
 
         async function handleIncomingTag(rawTag) {
             if (isAssigningInProgress) return;
             const cleanTag = String(rawTag || '').trim().replace(/\s+/g, ' ').toUpperCase();
-            if (!cleanTag) return;
+            if (!cleanTag || cleanTag.length < 3) return;
 
             isAssigningInProgress = true;
             stopActiveRfidListeners();
@@ -3075,7 +3126,7 @@ async function initRfidAssignmentPage() {
 
             if (uidRow) uidRow.style.display = 'block';
             if (uidText) uidText.textContent = cleanTag;
-            if (subtext) subtext.textContent = 'Saving RFID tag assignment to database...';
+            if (subtext) subtext.textContent = `Auto-Assigning RFID tag ${cleanTag} to ${targetName}...`;
 
             try {
                 let res = null;
@@ -3134,7 +3185,7 @@ async function initRfidAssignmentPage() {
                         if (lastUid) lastUid.textContent = cleanTag;
                     }
 
-                    showToast(`✓ RFID Tag ${cleanTag} assigned to ${targetName} successfully!`, 'success');
+                    showToast(`✓ RFID Tag ${cleanTag} automatically assigned to ${targetName}!`, 'success');
 
                     // Refresh registries
                     fetchRfidRegistryData();
@@ -3147,7 +3198,7 @@ async function initRfidAssignmentPage() {
 
                 } else {
                     const errMsg = res?.error || 'Assignment Failed: Unable to save the RFID assignment. Please try again.';
-                    if (title) title.textContent = 'RFID Already Assigned';
+                    if (title) title.textContent = 'RFID Assignment Notice';
                     if (subtext) subtext.innerHTML = `<span style="color: #dc2626;">${errMsg}</span>`;
                     if (pulse) pulse.style.display = 'none';
                     if (spin) spin.style.display = 'none';
@@ -3186,38 +3237,83 @@ async function initRfidAssignmentPage() {
             };
         }
 
-        // 1. Listen via SSE from /api/rfid/events
+        // 1. Direct Physical USB / Keyboard Wedge Scanner capture
+        let keyBuffer = '';
+        let lastKeyTime = Date.now();
+        activeRfidKeydownListener = (e) => {
+            if (isAssigningInProgress) return;
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && e.target.id !== 'promptInput') {
+                return;
+            }
+            if (e.key === 'Enter') {
+                if (keyBuffer.trim().length >= 4) {
+                    e.preventDefault();
+                    const scannedTag = keyBuffer.trim();
+                    keyBuffer = '';
+                    handleIncomingTag(scannedTag);
+                }
+                return;
+            }
+            if (e.key && e.key.length === 1 && /[A-Za-z0-9\s-]/.test(e.key)) {
+                const now = Date.now();
+                if (now - lastKeyTime > 600) {
+                    keyBuffer = '';
+                }
+                lastKeyTime = now;
+                keyBuffer += e.key;
+                if (keyBuffer.trim().length >= 16) {
+                    const scannedTag = keyBuffer.trim();
+                    keyBuffer = '';
+                    handleIncomingTag(scannedTag);
+                }
+            }
+        };
+        window.addEventListener('keydown', activeRfidKeydownListener);
+
+        // 2. Multi-Host SSE Stream Listeners
         try {
             if (window.EventSource) {
-                activeRfidEventSource = new EventSource(`${getStorekeeperApiBase()}/api/rfid/events`);
-                const handleSseMessage = (e) => {
+                candidateHosts.forEach(host => {
                     try {
-                        const data = JSON.parse(e.data);
-                        if (data && data.rfidTag) handleIncomingTag(data.rfidTag);
-                    } catch(err) {}
-                };
-                activeRfidEventSource.addEventListener('scan_packet', handleSseMessage);
-                activeRfidEventSource.addEventListener('user_scan', handleSseMessage);
-                activeRfidEventSource.addEventListener('equipment_scan', handleSseMessage);
-                activeRfidEventSource.addEventListener('unauthorized_scan', handleSseMessage);
+                        const sse = new EventSource(`${host}/api/rfid/events`);
+                        const handleSseMessage = (e) => {
+                            try {
+                                const data = JSON.parse(e.data);
+                                const tag = data?.rfidTag || data?.scan?.rfidTag;
+                                if (tag) handleIncomingTag(tag);
+                            } catch(err) {}
+                        };
+                        sse.addEventListener('scan_packet', handleSseMessage);
+                        sse.addEventListener('user_scan', handleSseMessage);
+                        sse.addEventListener('equipment_scan', handleSseMessage);
+                        sse.addEventListener('unauthorized_scan', handleSseMessage);
+                        activeRfidEventSources.push(sse);
+                    } catch(e) {}
+                });
             }
         } catch(e) {}
 
-        // 2. Short-polling fallback (checks /api/rfid/latest-scan every 400ms)
-        let lastPolledScanId = null;
+        // 3. Fast Multi-Host Polling Fallback (polls all candidate backends every 250ms)
         activeRfidPollingTimer = setInterval(async () => {
             if (isAssigningInProgress) return;
-            try {
-                const res = await fetch(`${getStorekeeperApiBase()}/api/rfid/latest-scan`).then(r => r.json());
-                if (res && res.success && res.scan && res.scan.rfidTag) {
-                    const scan = res.scan;
-                    if (scan.timestamp >= scanSessionStartTime && scan.id !== lastPolledScanId) {
-                        lastPolledScanId = scan.id;
-                        handleIncomingTag(scan.rfidTag);
+            for (const host of candidateHosts) {
+                try {
+                    const res = await fetch(`${host}/api/rfid/latest-scan`, { cache: 'no-store' }).then(r => r.json());
+                    if (res && res.success && res.scan && res.scan.rfidTag) {
+                        const scan = res.scan;
+                        const initId = initialScanMap.get(host);
+                        const isNewScanId = scan.id && scan.id !== initId && scan.id !== lastProcessedScanId;
+                        const isRecentTimestamp = scan.timestamp && (Math.abs(Date.now() - scan.timestamp) < 25000);
+                        
+                        if (isNewScanId || (isRecentTimestamp && scan.id !== lastProcessedScanId && !initId)) {
+                            lastProcessedScanId = scan.id;
+                            handleIncomingTag(scan.rfidTag);
+                            break;
+                        }
                     }
-                }
-            } catch(e) {}
-        }, 400);
+                } catch(e) {}
+            }
+        }, 250);
     }
 
     btnCloseModal?.addEventListener('click', () => {

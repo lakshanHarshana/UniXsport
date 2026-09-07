@@ -9,9 +9,14 @@ let sseClients = [];
  * Helper to broadcast SSE event to all connected web clients
  */
 function broadcastRfidEvent(eventType, payload) {
-  sseClients.forEach(client => {
-    client.res.write(`event: ${eventType}\n`);
-    client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  sseClients = sseClients.filter(client => {
+    try {
+      client.res.write(`event: ${eventType}\n`);
+      client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      return true;
+    } catch (e) {
+      return false;
+    }
   });
 }
 
@@ -71,7 +76,7 @@ function handleRfidScan(req, res) {
 
     // Always update latest scan memory for live UI binding & assignment
     db.latestRfidScan = {
-      id: 'scan_' + Date.now(),
+      id: 'scan_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       rfidTag: cleanTag,
       type: scanType,
       user: matchedUser ? { id: matchedUser.id, name: matchedUser.name, user_id: matchedUser.user_id || matchedUser.userId, role: matchedUser.role } : null,
@@ -86,7 +91,7 @@ function handleRfidScan(req, res) {
 
     if (matchedUser) {
       const scanLog = {
-        id: 'scan_' + Date.now(),
+        id: 'scan_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
         rfidTag: cleanTag,
         type: 'user',
         userId: matchedUser.id,
@@ -120,7 +125,7 @@ function handleRfidScan(req, res) {
 
     if (matchedEquipment) {
       const scanLog = {
-        id: 'scan_' + Date.now(),
+        id: 'scan_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
         rfidTag: cleanTag,
         type: 'equipment',
         equipmentId: matchedEquipment.id,
@@ -152,7 +157,7 @@ function handleRfidScan(req, res) {
 
     // 3. Unknown / New RFID Tag (Ready for Assignment or Access Denied)
     const scanLog = {
-      id: 'scan_' + Date.now(),
+      id: 'scan_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       rfidTag: cleanTag,
       type: 'unknown',
       deviceId,
@@ -186,6 +191,7 @@ router.get('/scan', handleRfidScan);
  * @desc    Fetch the latest raw scan received by the server
  */
 router.get('/latest-scan', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.json({ success: true, scan: db.latestRfidScan || null });
 });
 
@@ -195,17 +201,31 @@ router.get('/latest-scan', (req, res) => {
  */
 router.get('/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
-  const clientId = Date.now();
+  res.write(': keepalive\n\n');
+
+  const clientId = Date.now() + '_' + Math.random().toString(36).substring(2, 7);
   const newClient = { id: clientId, res };
   sseClients.push(newClient);
 
   console.log(`[SSE CLIENT CONNECTED] Client ID: ${clientId}`);
 
+  const pingTimer = setInterval(() => {
+    try {
+      res.write(': ping\n\n');
+    } catch(e) {
+      clearInterval(pingTimer);
+    }
+  }, 15000);
+
   req.on('close', () => {
+    clearInterval(pingTimer);
     sseClients = sseClients.filter(c => c.id !== clientId);
     console.log(`[SSE CLIENT DISCONNECTED] Client ID: ${clientId}`);
   });
