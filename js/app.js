@@ -12,15 +12,27 @@ function getUniXsportToken() {
            localStorage.getItem('unixsport_jwt_token') ||
            localStorage.getItem('token') ||
            '';
+function getStudentApiBase() {
+    if (typeof window !== 'undefined' && window.UniXsportAPI && typeof window.UniXsportAPI.getBaseUrl === 'function') {
+        return window.UniXsportAPI.getBaseUrl();
+    }
+    if (typeof window !== 'undefined' && window.API_BASE_URL) {
+        return window.API_BASE_URL;
+    }
+    return (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+        ? 'http://localhost:5000'
+        : 'https://unixsport-api.onrender.com';
 }
 
-const STUDENT_API_HOSTS = [
-    (typeof window !== 'undefined' && window.API_BASE_URL) ? window.API_BASE_URL : '',
-    'https://unixsport-api.onrender.com',
-    'http://localhost:5000',
-    'http://127.0.0.1:5000',
-    ''
-].filter((h, idx, arr) => arr.indexOf(h) === idx);
+function getStudentApiHosts() {
+    const primary = getStudentApiBase();
+    return [
+        primary,
+        'https://unixsport-api.onrender.com',
+        'http://localhost:5000',
+        'http://127.0.0.1:5000'
+    ].filter(Boolean).filter((h, idx, arr) => arr.indexOf(h) === idx);
+}
 
 async function fetchStudentAPI(endpoint, options = {}) {
     const token = getUniXsportToken();
@@ -30,8 +42,9 @@ async function fetchStudentAPI(endpoint, options = {}) {
         ...(options.headers || {})
     };
 
+    const hosts = getStudentApiHosts();
     let lastError = null;
-    for (const host of STUDENT_API_HOSTS) {
+    for (const host of hosts) {
         try {
             const url = host ? `${host}${endpoint}` : endpoint;
             const res = await fetch(url, { ...options, headers });
@@ -210,6 +223,9 @@ function initNavigation() {
         if (trigger) {
             e.preventDefault();
             showPage(trigger.dataset.page);
+            if (trigger.dataset.page === 'profile') {
+                if (typeof loadProfileFromStorage === 'function') loadProfileFromStorage();
+            }
             if (trigger.dataset.page === 'edit-profile') loadProfileIntoForm();
             if (trigger.dataset.page === 'borrow-history') loadBorrowHistory();
             if (trigger.dataset.page === 'request-schedule') {
