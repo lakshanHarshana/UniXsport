@@ -2076,4 +2076,95 @@ html[data-theme="dark"] #reportLoadingContainer p {
     color: #94a3b8 !important;
 }
 
+/* ========== Print & Save as PDF Media Styles ========== */
+@media print {
+    body, html {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt !important;
+    }
 
+    .top-navbar,
+    .sidebar,
+    .sidebar-overlay,
+    .modal,
+    #reportMonthInput,
+    .report-month-label,
+    #btnGenerateReport,
+    #btnDownloadReportPdf,
+    #btnPrintReport,
+    .quick-actions-grid,
+    #reportLoadingContainer,
+    .notification-panel,
+    .notification-dropdown {
+        display: none !important;
+    }
+
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    .page {
+        display: none !important;
+    }
+
+    #page-monthly-report {
+        display: block !important;
+    }
+
+    #reportPreviewContainer {
+        display: block !important;
+    }
+
+    .report-preview-card,
+    .card {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        color: #000000 !important;
+        page-break-inside: avoid;
+        margin-bottom: 16px !important;
+        padding: 14px !important;
+    }
+
+    .report-card-heading {
+        color: #1e3a8a !important;
+        font-size: 12pt !important;
+        border-bottom: 2px solid #2563eb;
+        padding-bottom: 4px;
+        margin-bottom: 10px;
+    }
+
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    th {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+        border: 1px solid #cbd5e1 !important;
+        font-size: 9pt !important;
+        padding: 6px 8px !important;
+    }
+
+    td {
+        border: 1px solid #cbd5e1 !important;
+        font-size: 8.5pt !important;
+        padding: 5px 8px !important;
+        color: #0f172a !important;
+    }
+
+    .stat-card {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        background: #f8fafc !important;
+    }
+
+    .badge {
+        border: 1px solid currentColor !important;
+        background: transparent !important;
+    }
+}
