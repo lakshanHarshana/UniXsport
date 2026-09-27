@@ -232,19 +232,31 @@ html[data-theme="dark"] .modal-content {
     }
 }
 
-/* ========== 6. Top Navbar Responsive System ========== */
+/* ========== 6. Top Navbar Responsive System (HCI & Touch Ergonomics Optimized) ========== */
 .top-navbar {
-    padding: 0 clamp(8px, 2.5vw, 24px);
+    padding: 0 clamp(10px, 2.5vw, 24px);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: clamp(6px, 1.5vw, 16px);
+    gap: clamp(8px, 1.5vw, 16px);
     width: 100%;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
+    height: var(--navbar-height, 64px);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
     z-index: 1000;
+    transition: background 0.3s ease, border-color 0.3s ease, height 0.2s ease;
+}
+
+html[data-theme="dark"] .top-navbar {
+    background: rgba(15, 23, 42, 0.94);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .top-navbar .logo {
@@ -254,6 +266,7 @@ html[data-theme="dark"] .modal-content {
     min-width: 0;
     flex: 0 1 auto;
     overflow: hidden;
+    text-decoration: none;
 }
 
 .top-navbar .university-logo {
@@ -288,10 +301,11 @@ html[data-theme="dark"] .modal-content {
     line-height: 1.2;
 }
 
+/* Navbar Right Toolbar Container */
 .top-navbar .navbar-right {
     display: flex;
     align-items: center;
-    gap: clamp(4px, 1.2vw, 12px);
+    gap: clamp(6px, 1.2vw, 12px);
     flex-shrink: 0;
     margin-left: auto;
 }
@@ -340,23 +354,124 @@ html[data-theme="dark"] .colombo-clock-widget .colombo-time {
     color: #f8fafc;
 }
 
+/* Unified Touch Target Affordances (Fitts's Law Ergonomics) */
+.icon-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 10px;
+    background: var(--gray-100, #f1f5f9);
+    color: var(--gray-700, #334155);
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.05rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.icon-btn:hover {
+    background: var(--blue, #2563eb);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.icon-btn:active {
+    transform: scale(0.92);
+}
+
+html[data-theme="dark"] .icon-btn {
+    background: var(--gray-800, #1e293b);
+    color: var(--gray-300, #cbd5e1);
+    border-color: var(--gray-700, #334155);
+}
+
+html[data-theme="dark"] .icon-btn:hover {
+    background: var(--blue, #2563eb);
+    color: #ffffff;
+    border-color: var(--blue, #2563eb);
+}
+
+/* Notification Badge */
+.icon-btn .badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+    background: #ea580c;
+    color: #ffffff;
+    border-radius: 9px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 2px solid white;
+}
+
+html[data-theme="dark"] .icon-btn .badge {
+    border-color: #0f172a;
+}
+
+/* Logout Button */
+.logout-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.logout-btn:active {
+    transform: scale(0.92);
+}
+
+/* ========== Tablet & Mobile Landscape View (<= 768px) ========== */
 @media (max-width: 768px) {
+    .top-navbar {
+        height: 58px;
+        padding: 0 12px !important;
+        gap: 8px !important;
+    }
+
     .top-navbar .univ-tag {
-        display: none !important; /* Hide long subtitle to prevent overlap */
+        display: none !important; /* Hide long secondary title to prevent header cramming */
     }
 
     .top-navbar .logo {
-        max-width: 55%;
+        max-width: 48%;
+        gap: 8px;
     }
 
     .top-navbar .brand-name {
-        font-size: clamp(0.9rem, 3.2vw, 1.1rem) !important;
+        font-size: 0.95rem !important;
     }
 
+    .top-navbar .university-logo {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    .top-navbar .navbar-right {
+        gap: 6px !important;
+    }
+
+    /* Time View: Compact, non-intrusive badge */
     .colombo-clock-widget {
         padding: 4px 8px !important;
         gap: 4px !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
     }
 
     .colombo-clock-widget .clock-icon {
@@ -364,12 +479,13 @@ html[data-theme="dark"] .colombo-clock-widget .colombo-time {
     }
 
     .colombo-clock-widget .colombo-time {
-        font-size: 0.9rem !important;
+        font-size: 0.88rem !important;
     }
 
-    .admin-info span,
-    .user-info span,
-    .coach-info span {
+    /* Hide heavy text labels in navbar-right on mobile */
+    .admin-info,
+    .user-info,
+    .coach-info {
         display: none !important;
     }
 
@@ -377,21 +493,108 @@ html[data-theme="dark"] .colombo-clock-widget .colombo-time {
         display: none !important;
     }
 
+    /* Logout Button: Formatted as standard square touch button with clear danger accent */
     .logout-btn {
-        padding: 6px 10px !important;
-        min-height: 36px !important;
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        padding: 0 !important;
+        border-radius: 10px !important;
+        font-size: 0.95rem !important;
+        color: #ef4444 !important;
+        border: 1px solid rgba(239, 68, 68, 0.35) !important;
+        background: rgba(239, 68, 68, 0.06) !important;
+    }
+
+    .logout-btn:hover {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        border-color: #ef4444 !important;
+    }
+
+    html[data-theme="dark"] .logout-btn {
+        background: rgba(239, 68, 68, 0.12) !important;
+        border-color: rgba(239, 68, 68, 0.45) !important;
+        color: #f87171 !important;
+    }
+
+    html[data-theme="dark"] .logout-btn:hover {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+    }
+
+    /* Standardized 38x38px Action Buttons */
+    .icon-btn {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        border-radius: 10px !important;
+        font-size: 0.95rem !important;
+    }
+
+    .sidebar-toggle {
+        width: 38px !important;
+        height: 38px !important;
+        min-width: 38px !important;
+        min-height: 38px !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
+        font-size: 1.15rem !important;
+    }
+
+    /* Notification Panel: Centered Drawer to Prevent Edge Clipping */
+    .notification-panel {
+        position: fixed !important;
+        top: 64px !important;
+        left: 12px !important;
+        right: 12px !important;
+        width: auto !important;
+        max-width: 380px !important;
+        margin: 0 auto !important;
+        border-radius: 14px !important;
+        box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.3) !important;
+        z-index: 1200 !important;
+        max-height: calc(100vh - 80px) !important;
+        overflow-y: auto !important;
+    }
+
+    /* Portal dropdown on home.html */
+    .portal-dropdown .btn-text {
+        display: none !important;
+    }
+
+    .portal-dropdown .dropdown-toggle {
+        padding: 0 10px !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        border-radius: 10px !important;
+    }
+
+    .portal-dropdown .dropdown-menu {
+        position: fixed !important;
+        top: 64px !important;
+        left: 12px !important;
+        right: 12px !important;
+        width: auto !important;
+        max-width: 320px !important;
+        margin: 0 auto !important;
+        z-index: 1200 !important;
     }
 }
 
+/* ========== Mobile Standard & Small (<= 480px) ========== */
 @media (max-width: 480px) {
     .top-navbar {
+        height: 54px;
         padding: 0 8px !important;
         gap: 6px !important;
     }
 
     .top-navbar .logo {
         gap: 6px !important;
-        max-width: 46% !important;
+        max-width: 38% !important;
     }
 
     .top-navbar .university-logo {
@@ -400,48 +603,61 @@ html[data-theme="dark"] .colombo-clock-widget .colombo-time {
     }
 
     .top-navbar .brand-name {
-        font-size: 0.84rem !important;
+        font-size: 0.85rem !important;
     }
 
     .top-navbar .navbar-right {
         gap: 4px !important;
     }
 
+    /* Time View: Streamlined Digital Pill (No icon, clean numbers only to save space) */
     .colombo-clock-widget {
         padding: 3px 6px !important;
-        gap: 3px !important;
+        gap: 0 !important;
+        border-radius: 6px !important;
     }
 
     .colombo-clock-widget .clock-icon {
-        font-size: 0.72rem !important;
+        display: none !important; /* Hide decorative icon to free space for interactive touch targets */
     }
 
     .colombo-clock-widget .colombo-time {
-        font-size: 0.82rem !important;
+        font-size: 0.8rem !important;
         letter-spacing: 0 !important;
+        font-weight: 700 !important;
     }
 
-    .icon-btn {
-        width: 32px !important;
-        height: 32px !important;
+    /* Ergonomic Touch Buttons with Clear Spacing */
+    .icon-btn,
+    .logout-btn,
+    .sidebar-toggle {
+        width: 35px !important;
+        height: 35px !important;
+        min-width: 35px !important;
+        min-height: 35px !important;
+        border-radius: 8px !important;
         font-size: 0.9rem !important;
-        padding: 0 !important;
-    }
-
-    .logout-btn {
-        padding: 6px 8px !important;
-        min-height: 32px !important;
-        height: 32px !important;
     }
 }
 
-@media (max-width: 350px) {
-    .top-navbar .brand-name {
-        font-size: 0.76rem !important;
+/* ========== Ultra-Narrow Displays (<= 360px - iPhone SE / Small Screens) ========== */
+@media (max-width: 360px) {
+    .top-navbar {
+        padding: 0 6px !important;
+        gap: 4px !important;
     }
 
-    .colombo-clock-widget .clock-icon {
-        display: none !important; /* Hide icon on ultra-narrow 320px screens */
+    .top-navbar .logo {
+        max-width: 34% !important;
+    }
+
+    .top-navbar .university-logo {
+        width: 24px !important;
+        height: 24px !important;
+    }
+
+    .top-navbar .brand-name {
+        font-size: 0.78rem !important;
     }
 
     .colombo-clock-widget {
@@ -449,7 +665,17 @@ html[data-theme="dark"] .colombo-clock-widget .colombo-time {
     }
 
     .colombo-clock-widget .colombo-time {
-        font-size: 0.78rem !important;
+        font-size: 0.74rem !important;
+    }
+
+    .icon-btn,
+    .logout-btn,
+    .sidebar-toggle {
+        width: 33px !important;
+        height: 33px !important;
+        min-width: 33px !important;
+        min-height: 33px !important;
+        font-size: 0.85rem !important;
     }
 }
 

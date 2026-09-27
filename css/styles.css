@@ -1380,3 +1380,10 @@ html[data-theme="dark"] .panel-hint {
     color: #64748b;
 }
 
+/* Hide Request Equipment elements per requirement while fully preserving in code */
+[data-page="request-equipment"],
+#page-request-equipment,
+.nav-link[data-page="request-equipment"] {
+    display: none !important;
+}
+
