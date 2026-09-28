@@ -99,9 +99,26 @@ let selectedExercises = [];
 let activeExerciseCategory = "Upper Body";
 let notices = [];
 let pendingListenersAttached = false;
+function getWeekStart(d) {
+    const date = new Date(d || new Date());
+    date.setHours(12, 0, 0, 0); // Anchor at noon to avoid DST and timezone shift anomalies
+    const day = date.getDay(); // 0 is Sunday
+    date.setDate(date.getDate() - day);
+    return date;
+}
+
+function getLocalDateString(d) {
+    if (!d) return '';
+    const date = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 let calendarListenersAttached = false;
-let currentWeekStart = new Date();
-currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay());
+let currentWeekStart = getWeekStart(new Date());
 let currentRequestId = null;
 let coachRefreshInterval = null;
 
@@ -845,18 +862,27 @@ function initCalendar() {
     renderCalendar();
     
     if (!calendarListenersAttached) {
-        document.getElementById('prevWeek')?.addEventListener('click', () => {
+        document.getElementById('prevWeek')?.addEventListener('click', (e) => {
+            e?.preventDefault();
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
             renderCalendar();
         });
 
-        document.getElementById('nextWeek')?.addEventListener('click', () => {
+        document.getElementById('nextWeek')?.addEventListener('click', (e) => {
+            e?.preventDefault();
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
             renderCalendar();
         });
+
+        document.getElementById('todayWeekBtn')?.addEventListener('click', (e) => {
+            e?.preventDefault();
+            currentWeekStart = getWeekStart(new Date());
+            renderCalendar();
+        });
+
         calendarListenersAttached = true;
     }
 }
-
-
 
 function renderCalendar() {
     const calendar = document.getElementById('scheduleCalendar');
@@ -866,8 +892,11 @@ function renderCalendar() {
     const weekEnd = new Date(currentWeekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
 
+    const startStr = getLocalDateString(currentWeekStart);
+    const endStr = getLocalDateString(weekEnd);
+
     if (weekRange) {
-        weekRange.textContent = `${formatDate(currentWeekStart.toISOString().split('T')[0])} - ${formatDate(weekEnd.toISOString().split('T')[0])}`;
+        weekRange.textContent = `${formatDate(startStr)} - ${formatDate(endStr)}`;
     }
 
     const timeSlots = [
@@ -881,19 +910,21 @@ function renderCalendar() {
     ];
 
     calendar.innerHTML = '';
+    const todayStr = getLocalDateString(new Date());
 
     for (let i = 0; i < 7; i++) {
         const date = new Date(currentWeekStart);
         date.setDate(date.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = getLocalDateString(date);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
         const dayNum = date.getDate();
+        const isToday = (dateStr === todayStr);
 
         const dayDiv = document.createElement('div');
-        dayDiv.className = 'calendar-day';
+        dayDiv.className = `calendar-day${isToday ? ' today' : ''}`;
         dayDiv.innerHTML = `
             <div class="calendar-day-header">
-                ${dayName}
+                ${dayName}${isToday ? ' <span class="badge badge-primary" style="font-size: 0.65rem; padding: 2px 6px; vertical-align: middle;">Today</span>' : ''}
                 <div class="date">${dayNum}</div>
             </div>
             ${timeSlots.map(slot => {
@@ -1312,6 +1343,11 @@ function updatePendingBadge() {
 function formatDate(dateString) {
     if (!dateString) return '-';
     try {
+        if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+            const [y, m, d] = dateString.trim().split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return dateString;
         return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });

@@ -678,6 +678,27 @@ h1, h2, h3, h4, h5 {
     padding: 16px;
     box-shadow: var(--shadow-sm);
     min-height: 200px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar-day.today {
+    border: 2px solid var(--primary);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+.calendar-day.today .calendar-day-header {
+    color: var(--primary);
+    border-bottom-color: rgba(37, 99, 235, 0.2);
+}
+
+html[data-theme="dark"] .calendar-day.today {
+    border-color: #60a5fa !important;
+    box-shadow: 0 4px 14px rgba(96, 165, 250, 0.25) !important;
+}
+
+html[data-theme="dark"] .calendar-day.today .calendar-day-header {
+    color: #60a5fa !important;
+    border-bottom-color: rgba(96, 165, 250, 0.3) !important;
 }
 
 .calendar-day-header {

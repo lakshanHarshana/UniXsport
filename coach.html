@@ -270,11 +270,16 @@
         <section id="page-schedule-calendar" class="page">
             <h1 class="page-title">Schedule Calendar</h1>
             <div class="calendar-controls">
-                <button class="btn btn-outline" id="prevWeek">
+                <button class="btn btn-outline" id="prevWeek" type="button">
                     <i class="fas fa-chevron-left"></i> Previous Week
                 </button>
-                <h3 id="calendarWeekRange">Week View</h3>
-                <button class="btn btn-outline" id="nextWeek">
+                <div class="calendar-controls-center" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                    <h3 id="calendarWeekRange">Week View</h3>
+                    <button class="btn btn-outline btn-sm" id="todayWeekBtn" type="button" style="padding: 4px 10px; font-size: 0.85rem;" title="Go to current week">
+                        <i class="fas fa-calendar-day"></i> Today
+                    </button>
+                </div>
+                <button class="btn btn-outline" id="nextWeek" type="button">
                     Next Week <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
