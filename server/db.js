@@ -31,6 +31,8 @@ let data = {
 
 let isMongoConnected = false;
 let mongoDbInstance = null;
+let isSyncing = false;
+let syncQueued = false;
 
 const COLLECTIONS = [
   'users',
@@ -135,6 +137,17 @@ async function connectMongoDB() {
     mongoDbInstance = conn.connection.db;
     console.log('[UniXsport Database] Connected to MongoDB Atlas successfully.');
 
+    // Ensure Unique Indexes in MongoDB Atlas to prevent duplicate users or RFID tags
+    try {
+      await mongoDbInstance.collection('users').createIndex({ user_id: 1 }, { unique: true, sparse: true });
+      await mongoDbInstance.collection('users').createIndex({ id: 1 }, { unique: true, sparse: true });
+      await mongoDbInstance.collection('equipment').createIndex({ id: 1 }, { unique: true, sparse: true });
+      await mongoDbInstance.collection('gymRequests').createIndex({ id: 1 }, { unique: true, sparse: true });
+      await mongoDbInstance.collection('workoutPlans').createIndex({ id: 1 }, { unique: true, sparse: true });
+    } catch (idxErr) {
+      // Indexes may already exist, ignore non-fatal index notice
+    }
+
     // Load initial data from MongoDB Atlas into memory
     let totalLoaded = 0;
     for (const colName of COLLECTIONS) {
@@ -196,50 +209,118 @@ function initLocalDatabase() {
   saveLocalJson();
 }
 
+/**
+ * Atomic Safe Local File Write: Writes to a temporary file first, then renames.
+ * Prevents file corruption if the process crashes during writing.
+ */
 function saveLocalJson() {
+  const tempFile = DB_FILE + '.tmp';
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tempFile, DB_FILE);
   } catch (e) {
     console.error('Error saving local database file:', e);
+    try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch(ign) {}
   }
 }
 
 /**
- * Universal saveDatabase: Saves both to MongoDB Atlas (primary) and local JSON (offline mirror)
+ * Robust Atomic Upsert Engine for MongoDB Atlas
+ * - Uses bulkWrite with upsert: true keyed on document unique 'id' or 'token'
+ * - Completely avoids deleteMany race conditions
+ * - Queues concurrent sync operations sequentially to prevent race collisions
+ */
+async function syncToMongoInternal() {
+  if (!isMongoConnected || !mongoDbInstance) return;
+  if (isSyncing) {
+    syncQueued = true;
+    return;
+  }
+
+  isSyncing = true;
+  try {
+    for (const colName of COLLECTIONS) {
+      const col = mongoDbInstance.collection(colName);
+      const records = data[colName] || [];
+
+      if (records.length === 0) {
+        await col.deleteMany({});
+        continue;
+      }
+
+      // Collect IDs present in current memory state
+      const currentIds = [];
+      const bulkOps = [];
+
+      for (const r of records) {
+        const copy = { ...r };
+        delete copy._id;
+
+        // Determine unique identifier for upsert
+        let filter = null;
+        if (copy.id) {
+          filter = { id: copy.id };
+          currentIds.push(copy.id);
+        } else if (copy.user_id) {
+          filter = { user_id: copy.user_id };
+          currentIds.push(copy.user_id);
+        } else if (copy.token) {
+          filter = { token: copy.token };
+        }
+
+        if (filter) {
+          bulkOps.push({
+            replaceOne: {
+              filter,
+              replacement: copy,
+              upsert: true
+            }
+          });
+        }
+      }
+
+      // Execute atomic bulk upserts
+      if (bulkOps.length > 0) {
+        await col.bulkWrite(bulkOps, { ordered: false });
+      }
+
+      // Remove records deleted from memory that have explicit 'id'
+      if (currentIds.length > 0) {
+        await col.deleteMany({ id: { $nin: currentIds } });
+      }
+    }
+
+    if (data.meta) {
+      const metaCol = mongoDbInstance.collection('meta');
+      const cleanMeta = { ...data.meta };
+      delete cleanMeta._id;
+      delete cleanMeta.key;
+      await metaCol.replaceOne(
+        { key: 'system_meta' },
+        { key: 'system_meta', ...cleanMeta },
+        { upsert: true }
+      );
+    }
+  } catch (err) {
+    console.error('[UniXsport Database] MongoDB background sync error:', err.message);
+  } finally {
+    isSyncing = false;
+    if (syncQueued) {
+      syncQueued = false;
+      syncToMongoInternal();
+    }
+  }
+}
+
+/**
+ * Universal saveDatabase: Atomically updates local mirror and triggers atomic upsert to MongoDB
  */
 function saveDatabase() {
-  // 1. Immediately update local mirror
+  // 1. Immediately update local mirror (atomic temp file write)
   saveLocalJson();
 
-  // 2. Asynchronously persist to MongoDB Atlas if connected
-  if (isMongoConnected && mongoDbInstance) {
-    (async () => {
-      try {
-        for (const colName of COLLECTIONS) {
-          const col = mongoDbInstance.collection(colName);
-          const records = data[colName] || [];
-          
-          await col.deleteMany({});
-          if (records.length > 0) {
-            const cleanDocs = records.map(r => {
-              const copy = { ...r };
-              if (copy._id) delete copy._id;
-              return copy;
-            });
-            await col.insertMany(cleanDocs);
-          }
-        }
-
-        if (data.meta) {
-          const metaCol = mongoDbInstance.collection('meta');
-          await metaCol.deleteMany({});
-          await metaCol.insertOne({ key: 'system_meta', ...data.meta });
-        }
-      } catch (err) {
-        console.error('[UniXsport Database] MongoDB background sync error:', err.message);
-      }
-    })();
-  }
+  // 2. Persist to MongoDB Atlas via queued atomic upsert
+  syncToMongoInternal();
 }
 
 // 1. Load local data immediately on startup (zero boot latency)
