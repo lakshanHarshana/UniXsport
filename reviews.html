@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student & Member Reviews - UniXsport | Rajarata University of Sri Lanka</title>
+    <link rel="icon" type="image/png" href="rajarata-logo.png">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Core Layout Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <!-- Dedicated Reviews Stylesheet (Team-Safe for Editing) -->
+    <link rel="stylesheet" href="css/reviews.css">
+</head>
+<body class="reviews-page-body">
+
+    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+        <div class="logo">
+            <a href="home.html" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit;">
+                <img src="rajarata-logo.png" alt="Rajarata University Logo" class="university-logo">
+                <span class="brand-name">UniXsport</span>
+            </a>
+            <span class="university-name">Department of Physical Education • RUSL</span>
+        </div>
+
+        <div class="navbar-right">
+            <button class="icon-btn theme-toggle" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="home.html" class="btn btn-outline" style="padding: 6px 14px; text-decoration: none; font-size: 0.9rem;">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="reviews-container">
+        <!-- Hero Title -->
+        <div class="reviews-hero">
+            <div class="reviews-badge">
+                <i class="fas fa-award"></i> Verified University Feedback
+            </div>
+            <h1>Member Reviews & Experiences</h1>
+            <p>Read real experiences from athletes, students, and faculty members training at Rajarata University Sports & Gymnasium facilities.</p>
+        </div>
+
+        <!-- Metric Highlights Grid -->
+        <div class="reviews-stats-grid">
+            <div class="stat-metric-card">
+                <div class="stat-metric-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-metric-info">
+                    <h3 id="statAvgRating">4.9</h3>
+                    <p>Average Rating (out of 5)</p>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="stat-metric-icon blue">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-metric-info">
+                    <h3 id="statTotalReviews">0</h3>
+                    <p>Total Community Reviews</p>
+                </div>
+            </div>
+
+            <div class="stat-metric-card">
+                <div class="stat-metric-icon green">
+                    <i class="fas fa-thumbs-up"></i>
+                </div>
+                <div class="stat-metric-info">
+                    <h3 id="statFiveStarPct">100%</h3>
+                    <p>5-Star Satisfaction Rate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2-Column Split Layout -->
+        <div class="reviews-layout">
+            <!-- Left Column: Submit a Review Card -->
+            <div class="review-form-card">
+                <h2>Share Your Experience</h2>
+                <p class="form-subtitle">Your feedback directly helps improve our gymnasium schedules and sports equipment store.</p>
+
+                <div id="reviewMessageBox" style="display: none;"></div>
+
+                <form id="reviewSubmitForm">
+                    <div class="form-group-rev">
+                        <label>Your Rating</label>
+                        <div class="star-rating-select" id="starRatingSelect">
+                            <i class="fas fa-star" data-value="1"></i>
+                            <i class="fas fa-star" data-value="2"></i>
+                            <i class="fas fa-star" data-value="3"></i>
+                            <i class="fas fa-star" data-value="4"></i>
+                            <i class="fas fa-star" data-value="5"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group-rev">
+                        <label for="revAuthorName">Full Name *</label>
+                        <input type="text" id="revAuthorName" placeholder="e.g. Kasun Bandara" required>
+                    </div>
+
+                    <div class="form-group-rev">
+                        <label for="revAuthorRole">Role / Status</label>
+                        <select id="revAuthorRole">
+                            <option value="Student Athlete">Student Athlete</option>
+                            <option value="Undergraduate Member">Undergraduate Member</option>
+                            <option value="Gym Coach">Gym Coach</option>
+                            <option value="Staff / Faculty">Staff / Faculty</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group-rev">
+                        <label for="revAuthorDept">Faculty / Department</label>
+                        <input type="text" id="revAuthorDept" placeholder="e.g. Faculty of Technology">
+                    </div>
+
+                    <div class="form-group-rev">
+                        <label for="revReviewTitle">Review Title</label>
+                        <input type="text" id="revReviewTitle" placeholder="e.g. Great equipment & friendly coaching">
+                    </div>
+
+                    <div class="form-group-rev">
+                        <label for="revReviewComment">Your Feedback *</label>
+                        <textarea id="revReviewComment" rows="4" placeholder="How was your gym session, equipment borrowing, or coach training experience?" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-submit-rev">
+                        <i class="fas fa-paper-plane"></i> Submit Review
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right Column: Live Community Reviews Feed -->
+            <div class="reviews-feed-column">
+                <div class="reviews-feed-header">
+                    <h2>Recent Reviews</h2>
+                    <div>
+                        <select id="ratingFilterSelect" class="reviews-filter-select">
+                            <option value="all">All Ratings (1 - 5 Stars)</option>
+                            <option value="5">5 Stars Only</option>
+                            <option value="4">4 Stars Only</option>
+                            <option value="3">3 Stars Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="reviews-grid" id="reviewsFeedContainer">
+                    <!-- Populated dynamically by js/reviews.js -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" style="margin-top: 60px;">
+        <div class="footer-bottom">
+            <div class="footer-bottom-content">
+                <p>&copy; 2024-2026 UniXsport. Department of Physical Education • Rajarata University of Sri Lanka.</p>
+                <div class="footer-links">
+                    <a href="home.html">Home</a>
+                    <span>•</span>
+                    <a href="home.html#facilities">Facilities</a>
+                    <span>•</span>
+                    <a href="home.html#contact">Contact</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts (Standalone API client and Dedicated reviews script) -->
+    <script src="js/api.js"></script>
+    <script src="js/colombo-clock.js"></script>
+    <script src="js/reviews.js"></script>
+</body>
+</html>

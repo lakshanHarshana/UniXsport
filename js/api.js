@@ -675,6 +675,18 @@ class UniXsportAPI {
 
     return false;
   }
+
+  // ========== Reviews Module Client ==========
+  static async getReviews() {
+    return this.request('/api/reviews');
+  }
+
+  static async submitReview(reviewData) {
+    return this.request('/api/reviews', {
+      method: 'POST',
+      body: JSON.stringify(reviewData)
+    });
+  }
 }
 
 window.UniXsportAPI = UniXsportAPI;

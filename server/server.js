@@ -38,6 +38,7 @@ const coachRoutes = require('./routes/coach');
 const storekeeperRoutes = require('./routes/storekeeper');
 const adminRoutes = require('./routes/admin');
 const noticesRoutes = require('./routes/notices');
+const reviewsRoutes = require('./routes/reviews');
 
 // Mount API Routes
 app.use('/api/auth', authRoutes);
@@ -47,6 +48,7 @@ app.use('/api/coach', coachRoutes);
 app.use('/api/storekeeper', storekeeperRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notices', noticesRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 const { db, saveDatabase } = require('./db');
 

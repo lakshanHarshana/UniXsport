@@ -700,5 +700,6 @@
     "system": "UniXsport University Management Platform",
     "lastUserIdSeq": 8
   },
-  "latestRfidScan": null
+  "latestRfidScan": null,
+  "reviews": []
 }

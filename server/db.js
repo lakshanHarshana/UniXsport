@@ -26,7 +26,8 @@ let data = {
   events: [],
   rfidScans: [],
   sessions: [],
-  contactMessages: []
+  contactMessages: [],
+  reviews: []
 };
 
 let isMongoConnected = false;
@@ -45,7 +46,8 @@ const COLLECTIONS = [
   'events',
   'rfidScans',
   'sessions',
-  'contactMessages'
+  'contactMessages',
+  'reviews'
 ];
 
 /**
@@ -204,6 +206,7 @@ function initLocalDatabase() {
   if (!data.rfidScans) data.rfidScans = [];
   if (!data.sessions) data.sessions = [];
   if (!data.contactMessages) data.contactMessages = [];
+  if (!data.reviews) data.reviews = [];
 
   migrateUserIds();
   saveLocalJson();
@@ -344,5 +347,6 @@ module.exports = {
   get events() { return data.events; },
   get rfidScans() { return data.rfidScans; },
   get sessions() { return data.sessions; },
-  get contactMessages() { return data.contactMessages; }
+  get contactMessages() { return data.contactMessages; },
+  get reviews() { return data.reviews; }
 };
