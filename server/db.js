@@ -1,10 +1,17 @@
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
+const dns = require('dns');
 
+// Ensure reliable SRV lookup on any ISP or local DNS resolver
+try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch(e) {}
+
+const config = require('./config');
 const DB_FILE = path.join(__dirname, 'data_store.json');
+const MONGODB_URI = config.MONGODB_URI || process.env.MONGODB_URI;
 
-// In-memory data store with JSON persistence
+// In-memory data store with live bidirectional sync to MongoDB Atlas & local JSON fallback
 let data = {
   meta: {
     lastUserIdSeq: 0
@@ -22,14 +29,29 @@ let data = {
   contactMessages: []
 };
 
+let isMongoConnected = false;
+let mongoDbInstance = null;
+
+const COLLECTIONS = [
+  'users',
+  'equipment',
+  'borrowLogs',
+  'gymRequests',
+  'workoutPlans',
+  'notices',
+  'facilities',
+  'events',
+  'rfidScans',
+  'sessions',
+  'contactMessages'
+];
+
 /**
  * Server-side auto-generation of unique User ID (format: US001, US002, US003...)
- * Finds the lowest available positive sequence number (fills gaps and releases deleted IDs).
  */
 function generateNextUserId() {
   if (!data.users) data.users = [];
   
-  // Collect all currently active US numbers in use
   const activeNumbers = new Set();
   data.users.forEach(u => {
     const idStr = u.user_id || u.userId;
@@ -42,7 +64,6 @@ function generateNextUserId() {
     }
   });
 
-  // Find the lowest available sequence number starting from 1 (US001, US002, US003...)
   let nextSeq = 1;
   while (activeNumbers.has(nextSeq)) {
     nextSeq++;
@@ -65,7 +86,6 @@ function migrateUserIds() {
   let migrated = false;
   let maxSeq = data.meta.lastUserIdSeq || 0;
 
-  // First determine max existing sequence
   data.users.forEach(u => {
     const idStr = u.user_id || u.userId;
     if (idStr) {
@@ -77,7 +97,6 @@ function migrateUserIds() {
     }
   });
 
-  // Assign sequential IDs to users lacking one
   data.users.forEach(u => {
     if (!u.user_id && !u.userId) {
       maxSeq++;
@@ -97,7 +116,60 @@ function migrateUserIds() {
   }
 }
 
-function initDatabase() {
+/**
+ * Connect to MongoDB Atlas and synchronize with local cache
+ */
+async function connectMongoDB() {
+  if (!MONGODB_URI) {
+    console.warn('[UniXsport Database] No MONGODB_URI configured. Running in JSON file fallback mode.');
+    return;
+  }
+
+  try {
+    console.log('[UniXsport Database] Connecting to MongoDB Atlas...');
+    const conn = await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 12000
+    });
+    
+    isMongoConnected = true;
+    mongoDbInstance = conn.connection.db;
+    console.log('[UniXsport Database] Connected to MongoDB Atlas successfully.');
+
+    // Load initial data from MongoDB Atlas into memory
+    let totalLoaded = 0;
+    for (const colName of COLLECTIONS) {
+      const col = mongoDbInstance.collection(colName);
+      const docs = await col.find({}).toArray();
+      if (docs && docs.length > 0) {
+        // Strip mongo internal _id to keep clean schema
+        data[colName] = docs.map(d => {
+          const clean = { ...d };
+          delete clean._id;
+          return clean;
+        });
+        totalLoaded += docs.length;
+      }
+    }
+
+    const metaDoc = await mongoDbInstance.collection('meta').findOne({ key: 'system_meta' });
+    if (metaDoc) {
+      const cleanMeta = { ...metaDoc };
+      delete cleanMeta._id;
+      delete cleanMeta.key;
+      data.meta = cleanMeta;
+    }
+
+    console.log(`[UniXsport Database] Synchronized ${totalLoaded} documents from MongoDB Atlas.`);
+    migrateUserIds();
+    // Update local JSON cache as instant offline mirror
+    saveLocalJson();
+  } catch (err) {
+    console.error('[UniXsport Database] MongoDB connection failed, falling back to local JSON cache:', err.message);
+    isMongoConnected = false;
+  }
+}
+
+function initLocalDatabase() {
   if (fs.existsSync(DB_FILE)) {
     try {
       const raw = fs.readFileSync(DB_FILE, 'utf8').replace(/^\uFEFF/, '');
@@ -109,177 +181,72 @@ function initDatabase() {
 
   if (!data.meta) data.meta = { lastUserIdSeq: 0 };
   if (!data.users) data.users = [];
-
-  // Auto-seed ONLY the single default admin account if users collection is empty
-  const hasAdmin = data.users.some(
-    u => (u.regNo && u.regNo.toLowerCase() === 'admin') || (u.username && u.username.toLowerCase() === 'admin')
-  );
-
-  if (!hasAdmin && data.users.length === 0) {
-    const adminPasswordHash = bcrypt.hashSync('password', 10);
-    data.users.push({
-      id: 'usr_admin',
-      user_id: 'US001',
-      userId: 'US001',
-      regNo: 'admin',
-      username: 'admin',
-      name: 'System Administrator',
-      email: 'admin@unixsport.edu',
-      passwordHash: adminPasswordHash,
-      role: 'admin',
-      rfidTag: 'F9E8D7C6',
-      department: 'Sports Directorate',
-      status: 'active',
-      avatarUrl: '',
-      createdAt: new Date().toISOString()
-    });
-    data.meta.lastUserIdSeq = 1;
-    saveDatabase();
-  }
-
-  // Backfill User IDs for all existing users
-  migrateUserIds();
-
-  // 2. DEFAULT FACILITIES
-  if (!data.facilities || data.facilities.length === 0) {
-    data.facilities = [
-      {
-        id: 'fac_01',
-        name: 'Main Gym',
-        description: 'Fully equipped with cardio machines, weights, and functional training areas',
-        hours: '6 AM - 10 PM',
-        location: 'Building A, Floor 1',
-        status: 'available',
-        type: 'gym',
-        iconClass: 'fa-dumbbell'
-      },
-      {
-        id: 'fac_02',
-        name: 'Yoga & Stretching Studio',
-        description: 'Dedicated space for yoga, meditation, and flexibility training',
-        hours: '7 AM - 8 PM',
-        location: 'Building A, Floor 2',
-        status: 'available',
-        type: 'yoga',
-        iconClass: 'fa-person-hiking'
-      },
-      {
-        id: 'fac_03',
-        name: 'Swimming Pool',
-        description: 'Olympic-size pool with separate lap lanes and training areas',
-        hours: '8 AM - 9 PM',
-        location: 'Building B',
-        status: 'available',
-        type: 'swimming',
-        iconClass: 'fa-water'
-      },
-      {
-        id: 'fac_04',
-        name: 'Basketball Court',
-        description: 'Professional basketball courts with modern lighting and seating',
-        hours: '7 AM - 10 PM',
-        location: 'Building C',
-        status: 'available',
-        type: 'basketball',
-        iconClass: 'fa-basketball'
-      },
-      {
-        id: 'fac_05',
-        name: 'Personal Training Zone',
-        description: 'Private training rooms with equipment for personalized coaching',
-        hours: '6 AM - 9 PM',
-        location: 'Building A, Floor 3',
-        status: 'available',
-        type: 'training',
-        iconClass: 'fa-heart-pulse'
-      },
-      {
-        id: 'fac_06',
-        name: 'Lounge & Cafeteria',
-        description: 'Comfortable relaxation area with healthy refreshment options',
-        hours: '6 AM - 10 PM',
-        location: 'Building A, Ground Floor',
-        status: 'available',
-        type: 'lounge',
-        iconClass: 'fa-couch'
-      }
-    ];
-  }
-
-  // 3. DEFAULT EVENTS
-  if (!data.events || data.events.length === 0) {
-    data.events = [
-      {
-        id: 'evt_01',
-        title: 'Inter-Faculty Sports Meet 2026',
-        description: 'Showcase your athletic talents in this exciting multi-sport tournament featuring track, volleyball, and badminton.',
-        date: '2026-09-15',
-        day: '15',
-        month: 'SEP',
-        location: 'Sports Complex',
-        participants: '200+ participants',
-        category: 'sports'
-      },
-      {
-        id: 'evt_02',
-        title: 'Fitness & Conditioning Workshop',
-        description: 'Learn professional fitness techniques from certified trainers. Sessions cover strength training, nutrition, and injury prevention.',
-        date: '2026-09-20',
-        day: '20',
-        month: 'SEP',
-        location: 'Main Gym',
-        participants: '50 spots available',
-        category: 'training'
-      },
-      {
-        id: 'evt_03',
-        title: 'Annual Campus Marathon',
-        description: 'Join the 5K and 10K runs around the campus. A fun event to improve endurance and build community spirit.',
-        date: '2026-09-25',
-        day: '25',
-        month: 'SEP',
-        location: 'Campus Grounds',
-        participants: 'All welcome',
-        category: 'marathon'
-      },
-      {
-        id: 'evt_04',
-        title: 'Wellness & Health Fair',
-        description: 'Free health check-ups, nutrition counseling, and wellness seminars. Meet our team of certified fitness professionals.',
-        date: '2026-09-28',
-        day: '28',
-        month: 'SEP',
-        location: 'Main Hall',
-        participants: 'Free entry',
-        category: 'wellness'
-      }
-    ];
-  }
-
-  // 4. NOTICES (No dummy seed, clean array)
-  if (!data.notices) data.notices = [];
-
   if (!data.equipment) data.equipment = [];
   if (!data.borrowLogs) data.borrowLogs = [];
   if (!data.gymRequests) data.gymRequests = [];
   if (!data.workoutPlans) data.workoutPlans = [];
+  if (!data.notices) data.notices = [];
+  if (!data.facilities) data.facilities = [];
+  if (!data.events) data.events = [];
   if (!data.rfidScans) data.rfidScans = [];
   if (!data.sessions) data.sessions = [];
   if (!data.contactMessages) data.contactMessages = [];
 
-  saveDatabase();
+  migrateUserIds();
+  saveLocalJson();
 }
 
-function saveDatabase() {
+function saveLocalJson() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (e) {
-    console.error('Error saving database file:', e);
+    console.error('Error saving local database file:', e);
   }
 }
 
-// Initialize on module load
-initDatabase();
+/**
+ * Universal saveDatabase: Saves both to MongoDB Atlas (primary) and local JSON (offline mirror)
+ */
+function saveDatabase() {
+  // 1. Immediately update local mirror
+  saveLocalJson();
+
+  // 2. Asynchronously persist to MongoDB Atlas if connected
+  if (isMongoConnected && mongoDbInstance) {
+    (async () => {
+      try {
+        for (const colName of COLLECTIONS) {
+          const col = mongoDbInstance.collection(colName);
+          const records = data[colName] || [];
+          
+          await col.deleteMany({});
+          if (records.length > 0) {
+            const cleanDocs = records.map(r => {
+              const copy = { ...r };
+              if (copy._id) delete copy._id;
+              return copy;
+            });
+            await col.insertMany(cleanDocs);
+          }
+        }
+
+        if (data.meta) {
+          const metaCol = mongoDbInstance.collection('meta');
+          await metaCol.deleteMany({});
+          await metaCol.insertOne({ key: 'system_meta', ...data.meta });
+        }
+      } catch (err) {
+        console.error('[UniXsport Database] MongoDB background sync error:', err.message);
+      }
+    })();
+  }
+}
+
+// 1. Load local data immediately on startup (zero boot latency)
+initLocalDatabase();
+
+// 2. Connect to MongoDB Atlas in background and sync
+connectMongoDB();
 
 module.exports = {
   db: data,
