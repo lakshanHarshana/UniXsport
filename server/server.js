@@ -2,6 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const dns = require('dns');
+
+// Ensure reliable SRV resolution for MongoDB Atlas across local ISP DNS
+try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch(e) {}
+
 const config = require('./config');
 
 // Ensure upload directory exists
