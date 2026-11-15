@@ -3,11 +3,25 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      ".git/**",
+      ".git",
+      "**/.git/**",
+      ".firebase/**",
+      ".firebase",
       "**/.*",
+      "node_modules/**",
+      "node_modules",
       "**/node_modules/**",
+      "server/**",
+      "server",
       "RFID/**",
       "hardware/**",
-      "uploads/**"
+      "uploads/**",
+      "package.json",
+      "package-lock.json",
+      "*.md",
+      "*.txt",
+      "*.log"
     ],
     "headers": [
       {
