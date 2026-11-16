@@ -1,187 +1,1054 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Student & Member Reviews - UniXsport | Rajarata University of Sri Lanka</title>
+
     <link rel="icon" type="image/png" href="rajarata-logo.png">
 
-    <!-- Fonts & Icons -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Core Layout Styles -->
+    <!-- Existing CSS Files -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/dark-mode.css">
     <link rel="stylesheet" href="css/responsive.css">
-    <!-- Dedicated Reviews Stylesheet (Team-Safe for Editing) -->
     <link rel="stylesheet" href="css/reviews.css">
+
+    <!-- Reviews Page HTML Redesign Styles -->
+    <style>
+        /* =====================================
+           UNIXSPORT REVIEWS PAGE
+        ===================================== */
+
+        .reviews-page-body {
+            background: #f4f7fc;
+            color: #17243a;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* NAVBAR */
+
+        .reviews-page-body .top-navbar {
+            padding: 13px 6%;
+            min-height: 76px;
+            background: #ffffff;
+            border-bottom: 1px solid #e8edf5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 3px 18px rgba(20,40,70,0.04);
+        }
+
+        .reviews-page-body .logo {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .reviews-page-body .university-logo {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        .reviews-page-body .brand-name {
+            font-size: 25px;
+            font-weight: 800;
+            color: #1769e0;
+            letter-spacing: -1px;
+        }
+
+        .reviews-page-body .university-name {
+            font-size: 11px;
+            color: #7b8799;
+            font-weight: 500;
+        }
+
+        .reviews-page-body .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .reviews-page-body .theme-toggle {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: 1px solid #e5eaf2;
+            background: #f7f9fd;
+            cursor: pointer;
+        }
+
+        .reviews-page-body .btn-outline {
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* MAIN */
+
+        .reviews-container {
+            max-width: 1240px;
+            width: 90%;
+            margin: auto;
+            padding: 48px 0 65px;
+        }
+
+        /* HERO */
+
+        .reviews-hero {
+            text-align: center;
+            max-width: 760px;
+            margin: 0 auto 42px;
+        }
+
+        .reviews-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 17px;
+            background: #e7f0ff;
+            color: #1769e0;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        .reviews-hero h1 {
+            font-size: clamp(30px, 4vw, 43px);
+            font-weight: 800;
+            line-height: 1.3;
+            letter-spacing: -1.2px;
+            margin: 0 0 13px;
+            color: #17243a;
+        }
+
+        .reviews-hero p {
+            color: #78869a;
+            font-size: 14px;
+            line-height: 1.9;
+            margin: 0;
+        }
+
+        /* STATISTICS */
+
+        .reviews-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 35px;
+        }
+
+        .stat-metric-card {
+            background: #ffffff;
+            border: 1px solid #e8edf5;
+            border-radius: 17px;
+            padding: 23px;
+            display: flex;
+            align-items: center;
+            gap: 17px;
+            box-shadow: 0 7px 25px rgba(25,50,85,0.045);
+            transition: 0.25s;
+        }
+
+        .stat-metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(25,50,85,0.09);
+        }
+
+        .stat-metric-icon {
+            width: 55px;
+            height: 55px;
+            min-width: 55px;
+            border-radius: 15px;
+            display: grid;
+            place-items: center;
+            background: #fff4df;
+            color: #f2aa18;
+            font-size: 22px;
+        }
+
+        .stat-metric-icon.blue {
+            background: #e8f1ff;
+            color: #2875e8;
+        }
+
+        .stat-metric-icon.green {
+            background: #e5f8f0;
+            color: #17a673;
+        }
+
+        .stat-metric-info h3 {
+            font-size: 27px;
+            font-weight: 800;
+            margin: 0 0 3px;
+            color: #17243a;
+        }
+
+        .stat-metric-info p {
+            font-size: 11px;
+            color: #8491a4;
+            margin: 0;
+        }
+
+        /* MAIN TWO COLUMN LAYOUT */
+
+        .reviews-layout {
+            display: grid;
+            grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.4fr);
+            align-items: start;
+            gap: 25px;
+        }
+
+        /* REVIEW FORM */
+
+        .review-form-card {
+            background: #ffffff;
+            border: 1px solid #e8edf5;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 8px 30px rgba(25,50,85,0.05);
+        }
+
+        .review-card-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 13px;
+            margin-bottom: 23px;
+        }
+
+        .review-heading-icon {
+            width: 43px;
+            height: 43px;
+            min-width: 43px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: #eaf2ff;
+            color: #1769e0;
+            font-size: 18px;
+        }
+
+        .review-form-card h2,
+        .reviews-feed-header h2 {
+            font-size: 19px;
+            font-weight: 700;
+            margin: 0 0 5px;
+            color: #17243a;
+        }
+
+        .form-subtitle {
+            font-size: 11px;
+            line-height: 1.8;
+            color: #8290a3;
+            margin: 0;
+        }
+
+        .form-group-rev {
+            margin-bottom: 17px;
+        }
+
+        .form-group-rev label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #34445c;
+            margin-bottom: 8px;
+        }
+
+        .form-group-rev input,
+        .form-group-rev select,
+        .form-group-rev textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border: 1px solid #e4eaf2;
+            border-radius: 10px;
+            background: #f9fbfe;
+            color: #26364d;
+            font-family: inherit;
+            font-size: 12px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .form-group-rev input:focus,
+        .form-group-rev select:focus,
+        .form-group-rev textarea:focus {
+            border-color: #1769e0;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(23,105,224,0.09);
+        }
+
+        .form-group-rev textarea {
+            resize: vertical;
+            min-height: 110px;
+        }
+
+        .star-rating-select {
+            display: flex;
+            gap: 10px;
+            padding: 12px 15px;
+            border: 1px solid #e4eaf2;
+            border-radius: 10px;
+            background: #f9fbfe;
+            width: fit-content;
+        }
+
+        .star-rating-select i {
+            font-size: 24px;
+            color: #d5dce7;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .star-rating-select i:hover {
+            transform: scale(1.15);
+        }
+
+        .btn-submit-rev {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1769e0, #3989f5);
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 7px 18px rgba(23,105,224,0.2);
+            transition: 0.25s;
+        }
+
+        .btn-submit-rev:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 23px rgba(23,105,224,0.28);
+        }
+
+        .btn-submit-rev i {
+            margin-right: 8px;
+        }
+
+        /* REVIEWS FEED */
+
+        .reviews-feed-column {
+            min-width: 0;
+        }
+
+        .reviews-feed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #ffffff;
+            border: 1px solid #e8edf5;
+            border-radius: 15px;
+            padding: 17px 20px;
+        }
+
+        .feed-heading-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .feed-heading-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #eaf2ff;
+            color: #1769e0;
+            display: grid;
+            place-items: center;
+        }
+
+        .feed-heading-left h2 {
+            margin: 0;
+        }
+
+        .feed-heading-left p {
+            margin: 3px 0 0;
+            color: #8491a4;
+            font-size: 10px;
+        }
+
+        .reviews-filter-select {
+            padding: 10px 13px;
+            border: 1px solid #e4eaf2;
+            border-radius: 9px;
+            background: #f9fbfe;
+            color: #34445c;
+            font-family: inherit;
+            font-size: 11px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .reviews-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        /* Review card base appearance */
+
+        .reviews-grid > * {
+            background: #ffffff;
+            border: 1px solid #e8edf5;
+            border-radius: 15px;
+            padding: 22px;
+            box-shadow: 0 6px 22px rgba(25,50,85,0.04);
+            transition: 0.25s;
+        }
+
+        .reviews-grid > *:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 28px rgba(25,50,85,0.08);
+        }
+
+        /* FOOTER */
+
+        .reviews-page-body .footer {
+            margin-top: 45px !important;
+            background: #101d32;
+            color: #ffffff;
+        }
+
+        .reviews-page-body .footer-bottom {
+            padding: 25px 6%;
+        }
+
+        .reviews-page-body .footer-bottom-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .reviews-page-body .footer-bottom-content p {
+            font-size: 11px;
+            color: #bdc8d8;
+            margin: 0;
+        }
+
+        .reviews-page-body .footer-links {
+            display: flex;
+            gap: 13px;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .reviews-page-body .footer-links a {
+            color: #dce7f7;
+            text-decoration: none;
+        }
+
+        .reviews-page-body .footer-links a:hover {
+            color: #65a5ff;
+        }
+
+        /* MESSAGE BOX */
+
+        #reviewMessageBox {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 12px;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 900px) {
+            .reviews-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .reviews-stats-grid {
+                gap: 12px;
+            }
+
+            .review-form-card {
+                position: static;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .reviews-container {
+                width: 92%;
+                padding-top: 32px;
+            }
+
+            .reviews-page-body .top-navbar {
+                padding: 12px 4%;
+            }
+
+            .reviews-page-body .university-name {
+                display: none;
+            }
+
+            .reviews-page-body .brand-name {
+                font-size: 21px;
+            }
+
+            .reviews-page-body .university-logo {
+                width: 40px;
+                height: 40px;
+            }
+
+            .reviews-stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .reviews-hero h1 {
+                font-size: 29px;
+            }
+
+            .review-form-card {
+                padding: 21px 17px;
+            }
+
+            .reviews-feed-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .reviews-filter-select {
+                width: 100%;
+            }
+
+            .reviews-page-body .footer-bottom-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* DARK MODE SUPPORT */
+
+        body.dark-mode.reviews-page-body {
+            background: #0d1728;
+            color: #edf3fc;
+        }
+
+        body.dark-mode.reviews-page-body .top-navbar,
+        body.dark-mode.reviews-page-body .stat-metric-card,
+        body.dark-mode.reviews-page-body .review-form-card,
+        body.dark-mode.reviews-page-body .reviews-feed-header,
+        body.dark-mode.reviews-page-body .reviews-grid > * {
+            background: #152238;
+            border-color: #293b55;
+        }
+
+        body.dark-mode.reviews-page-body .reviews-hero h1,
+        body.dark-mode.reviews-page-body .stat-metric-info h3,
+        body.dark-mode.reviews-page-body .review-form-card h2,
+        body.dark-mode.reviews-page-body .reviews-feed-header h2 {
+            color: #edf3fc;
+        }
+
+        body.dark-mode.reviews-page-body .form-group-rev label {
+            color: #d5dfed;
+        }
+
+        body.dark-mode.reviews-page-body .form-group-rev input,
+        body.dark-mode.reviews-page-body .form-group-rev select,
+        body.dark-mode.reviews-page-body .form-group-rev textarea,
+        body.dark-mode.reviews-page-body .star-rating-select,
+        body.dark-mode.reviews-page-body .reviews-filter-select {
+            background: #1c2d46;
+            color: #edf3fc;
+            border-color: #293b55;
+        }
+
+        body.dark-mode.reviews-page-body .reviews-badge {
+            background: #1b3558;
+            color: #8bbaff;
+        }
+
+        body.dark-mode.reviews-page-body .theme-toggle {
+            background: #1c2d46;
+            color: #ffffff;
+            border-color: #293b55;
+        }
+    </style>
 </head>
+
 <body class="reviews-page-body">
 
-    <!-- Top Navigation Bar -->
+    <!-- =====================================
+         TOP NAVIGATION
+    ====================================== -->
+
     <nav class="top-navbar">
+
         <div class="logo">
-            <a href="home.html" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit;">
-                <img src="rajarata-logo.png" alt="Rajarata University Logo" class="university-logo">
+
+            <a href="home.html"
+               style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+
+                <img src="rajarata-logo.png"
+                     alt="Rajarata University Logo"
+                     class="university-logo">
+
                 <span class="brand-name">UnixSport</span>
+
             </a>
-            <span class="university-name">Department of Physical Education • RUSL</span>
+
+            <span class="university-name">
+                Department of Physical Education • RUSL
+            </span>
+
         </div>
 
         <div class="navbar-right">
-            <button class="icon-btn theme-toggle" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
+
+            <button class="icon-btn theme-toggle"
+                    id="themeToggleBtn"
+                    title="Toggle Theme"
+                    aria-label="Toggle Theme">
+
                 <i class="fas fa-moon"></i>
+
             </button>
-            <a href="home.html" class="btn btn-outline" style="padding: 6px 14px; text-decoration: none; font-size: 0.9rem;">
-                <i class="fas fa-arrow-left"></i> Back to Home
+
+            <a href="home.html"
+               class="btn btn-outline"
+               style="padding:8px 15px; text-decoration:none; font-size:0.85rem;">
+
+                <i class="fas fa-arrow-left"></i>
+                Back to Home
+
             </a>
+
         </div>
+
     </nav>
 
-    <!-- Main Content Container -->
+
+    <!-- =====================================
+         MAIN REVIEWS CONTENT
+    ====================================== -->
+
     <main class="reviews-container">
-        <!-- Hero Title -->
-        <div class="reviews-hero">
+
+
+        <!-- HERO SECTION -->
+
+        <section class="reviews-hero">
+
             <div class="reviews-badge">
-                <i class="fas fa-award"></i> Verified University Feedback
-            </div>
-            <h1>Member Reviews & Experiences</h1>
-            <p>Read real experiences from athletes, students, and faculty members training at Rajarata University Sports & Gymnasium facilities.</p>
-        </div>
 
-        <!-- Metric Highlights Grid -->
-        <div class="reviews-stats-grid">
+                <i class="fas fa-award"></i>
+
+                Verified University Feedback
+
+            </div>
+
+            <h1>
+                Member Reviews & Experiences
+            </h1>
+
+            <p>
+                Discover what students, athletes, coaches, and university
+                members say about their experiences with Rajarata University
+                sports and gymnasium facilities.
+            </p>
+
+        </section>
+
+
+        <!-- =================================
+             COMMUNITY STATISTICS
+        ================================== -->
+
+        <section class="reviews-stats-grid">
+
+
+            <!-- Average Rating -->
+
             <div class="stat-metric-card">
+
                 <div class="stat-metric-icon">
+
                     <i class="fas fa-star"></i>
+
                 </div>
+
                 <div class="stat-metric-info">
+
                     <h3 id="statAvgRating">4.9</h3>
+
                     <p>Average Rating (out of 5)</p>
+
                 </div>
+
             </div>
 
+
+            <!-- Total Reviews -->
+
             <div class="stat-metric-card">
+
                 <div class="stat-metric-icon blue">
+
                     <i class="fas fa-users"></i>
+
                 </div>
+
                 <div class="stat-metric-info">
+
                     <h3 id="statTotalReviews">0</h3>
+
                     <p>Total Community Reviews</p>
+
                 </div>
+
             </div>
+
+
+            <!-- Satisfaction -->
 
             <div class="stat-metric-card">
+
                 <div class="stat-metric-icon green">
+
                     <i class="fas fa-thumbs-up"></i>
+
                 </div>
+
                 <div class="stat-metric-info">
+
                     <h3 id="statFiveStarPct">100%</h3>
+
                     <p>5-Star Satisfaction Rate</p>
+
                 </div>
+
             </div>
-        </div>
 
-        <!-- 2-Column Split Layout -->
-        <div class="reviews-layout">
-            <!-- Left Column: Submit a Review Card -->
+        </section>
+
+
+        <!-- =================================
+             REVIEW FORM AND REVIEW FEED
+        ================================== -->
+
+        <section class="reviews-layout">
+
+
+            <!-- LEFT SIDE: REVIEW FORM -->
+
             <div class="review-form-card">
-                <h2>Share Your Experience</h2>
-                <p class="form-subtitle">Your feedback directly helps improve our gymnasium schedules and sports equipment store.</p>
 
-                <div id="reviewMessageBox" style="display: none;"></div>
+
+                <div class="review-card-heading">
+
+                    <div class="review-heading-icon">
+
+                        <i class="fas fa-pen-to-square"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h2>Share Your Experience</h2>
+
+                        <p class="form-subtitle">
+                            Your feedback helps us improve our university
+                            sports and gymnasium facilities.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Existing message box -->
+
+                <div id="reviewMessageBox" style="display:none;"></div>
+
+
+                <!-- Existing Review Submission Form -->
 
                 <form id="reviewSubmitForm">
+
+
+                    <!-- Rating -->
+
                     <div class="form-group-rev">
+
                         <label>Your Rating</label>
+
                         <div class="star-rating-select" id="starRatingSelect">
+
                             <i class="fas fa-star" data-value="1"></i>
+
                             <i class="fas fa-star" data-value="2"></i>
+
                             <i class="fas fa-star" data-value="3"></i>
+
                             <i class="fas fa-star" data-value="4"></i>
+
                             <i class="fas fa-star" data-value="5"></i>
+
                         </div>
+
                     </div>
 
-                    <div class="form-group-rev">
-                        <label for="revAuthorName">Full Name *</label>
-                        <input type="text" id="revAuthorName" placeholder="e.g. Kasun Bandara" required>
-                    </div>
+
+                    <!-- Full Name -->
 
                     <div class="form-group-rev">
-                        <label for="revAuthorRole">Role / Status</label>
+
+                        <label for="revAuthorName">
+                            Full Name *
+                        </label>
+
+                        <input
+                            type="text"
+                            id="revAuthorName"
+                            placeholder="Enter your full name"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- Role -->
+
+                    <div class="form-group-rev">
+
+                        <label for="revAuthorRole">
+                            Role / Status
+                        </label>
+
                         <select id="revAuthorRole">
-                            <option value="Student Athlete">Student Athlete</option>
-                            <option value="Undergraduate Member">Undergraduate Member</option>
-                            <option value="Gym Coach">Gym Coach</option>
-                            <option value="Staff / Faculty">Staff / Faculty</option>
+
+                            <option value="Student Athlete">
+                                Student Athlete
+                            </option>
+
+                            <option value="Undergraduate Member">
+                                Undergraduate Member
+                            </option>
+
+                            <option value="Gym Coach">
+                                Gym Coach
+                            </option>
+
+                            <option value="Staff / Faculty">
+                                Staff / Faculty
+                            </option>
+
                         </select>
+
                     </div>
 
-                    <div class="form-group-rev">
-                        <label for="revAuthorDept">Faculty / Department</label>
-                        <input type="text" id="revAuthorDept" placeholder="e.g. Faculty of Technology">
-                    </div>
+
+                    <!-- Department -->
 
                     <div class="form-group-rev">
-                        <label for="revReviewTitle">Review Title</label>
-                        <input type="text" id="revReviewTitle" placeholder="e.g. Great equipment & friendly coaching">
+
+                        <label for="revAuthorDept">
+                            Faculty / Department
+                        </label>
+
+                        <input
+                            type="text"
+                            id="revAuthorDept"
+                            placeholder="e.g. Faculty of Technology"
+                        >
+
                     </div>
 
+
+                    <!-- Review Title -->
+
                     <div class="form-group-rev">
-                        <label for="revReviewComment">Your Feedback *</label>
-                        <textarea id="revReviewComment" rows="4" placeholder="How was your gym session, equipment borrowing, or coach training experience?" required></textarea>
+
+                        <label for="revReviewTitle">
+                            Review Title
+                        </label>
+
+                        <input
+                            type="text"
+                            id="revReviewTitle"
+                            placeholder="Give your review a title"
+                        >
+
                     </div>
+
+
+                    <!-- Feedback -->
+
+                    <div class="form-group-rev">
+
+                        <label for="revReviewComment">
+                            Your Feedback *
+                        </label>
+
+                        <textarea
+                            id="revReviewComment"
+                            rows="4"
+                            placeholder="Share your experience with our gym, equipment, or coaching facilities..."
+                            required
+                        ></textarea>
+
+                    </div>
+
+
+                    <!-- Submit -->
 
                     <button type="submit" class="btn-submit-rev">
-                        <i class="fas fa-paper-plane"></i> Submit Review
+
+                        <i class="fas fa-paper-plane"></i>
+
+                        Submit Review
+
                     </button>
+
                 </form>
+
             </div>
 
-            <!-- Right Column: Live Community Reviews Feed -->
+
+            <!-- RIGHT SIDE: REVIEWS FEED -->
+
             <div class="reviews-feed-column">
+
+
+                <!-- Feed Header -->
+
                 <div class="reviews-feed-header">
-                    <h2>Recent Reviews</h2>
-                    <div>
-                        <select id="ratingFilterSelect" class="reviews-filter-select">
-                            <option value="all">All Ratings (1 - 5 Stars)</option>
-                            <option value="5">5 Stars Only</option>
-                            <option value="4">4 Stars Only</option>
-                            <option value="3">3 Stars Only</option>
-                        </select>
+
+                    <div class="feed-heading-left">
+
+                        <div class="feed-heading-icon">
+
+                            <i class="fas fa-comments"></i>
+
+                        </div>
+
+                        <div>
+
+                            <h2>Recent Reviews</h2>
+
+                            <p>Community feedback and experiences</p>
+
+                        </div>
+
                     </div>
+
+
+                    <!-- Existing Rating Filter -->
+
+                    <div>
+
+                        <select id="ratingFilterSelect"
+                                class="reviews-filter-select">
+
+                            <option value="all">
+                                All Ratings (1 - 5 Stars)
+                            </option>
+
+                            <option value="5">
+                                5 Stars Only
+                            </option>
+
+                            <option value="4">
+                                4 Stars Only
+                            </option>
+
+                            <option value="3">
+                                3 Stars Only
+                            </option>
+
+                        </select>
+
+                    </div>
+
                 </div>
+
+
+                <!-- Existing Dynamic Reviews Container -->
 
                 <div class="reviews-grid" id="reviewsFeedContainer">
-                    <!-- Populated dynamically by js/reviews.js -->
+
+                    <!-- Reviews are dynamically populated by js/reviews.js -->
+
                 </div>
+
             </div>
-        </div>
+
+        </section>
+
     </main>
 
-    <!-- Footer -->
-    <footer class="footer" style="margin-top: 60px;">
+
+    <!-- =====================================
+         FOOTER
+    ====================================== -->
+
+    <footer class="footer" style="margin-top:45px;">
+
         <div class="footer-bottom">
+
             <div class="footer-bottom-content">
-                <p>&copy; 2024-2026 UniXsport. Department of Physical Education • Rajarata University of Sri Lanka.</p>
+
+                <p>
+                    &copy; 2024-2026 UniXsport.
+                    Department of Physical Education •
+                    Rajarata University of Sri Lanka.
+                </p>
+
                 <div class="footer-links">
+
                     <a href="home.html">Home</a>
+
                     <span>•</span>
+
                     <a href="home.html#facilities">Facilities</a>
+
                     <span>•</span>
+
                     <a href="home.html#contact">Contact</a>
+
                 </div>
+
             </div>
+
         </div>
+
     </footer>
 
-    <!-- Scripts (Standalone API client and Dedicated reviews script) -->
+
+    <!-- =====================================
+         EXISTING JAVASCRIPT CONNECTIONS
+         Do not change these paths
+    ====================================== -->
+
     <script src="js/api.js"></script>
+
     <script src="js/colombo-clock.js"></script>
+
     <script src="js/reviews.js"></script>
+
 </body>
+</html>
+
 </html>
