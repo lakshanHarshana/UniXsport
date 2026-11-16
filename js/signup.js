@@ -45,7 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
             shakeCard();
             return;
         }
+        const validPrefixes = ['ITT', 'BST', 'ENT', 'SSH', 'MGT', 'ASP'];
 
+        const hasValidPrefix = validPrefixes.some(prefix => regNo.startsWith(prefix));
+        
         if (!regNo || regNo.length < 3) {
             showToast('Please enter a valid Registration Number.', 'error');
             shakeCard();
