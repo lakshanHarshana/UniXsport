@@ -30,14 +30,7 @@
         this.updatePillUI();
       });
 
-      // 2. DOM Ready setup for indicator pill
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => this.injectSyncPill());
-      } else {
-        this.injectSyncPill();
-      }
-
-      // 3. Periodic Background Health Check & Outbox Flush
+      // 2. Periodic Background Health Check & Outbox Flush
       setInterval(() => {
         this.heartbeatCheck();
       }, 15000);
@@ -187,64 +180,13 @@
     }
 
     injectSyncPill() {
-      if (document.getElementById('unixsport-sync-pill')) return;
-
-      const pill = document.createElement('div');
-      pill.id = 'unixsport-sync-pill';
-      pill.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 99999;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 14px;
-        border-radius: 30px;
-        font-family: 'Outfit', sans-serif;
-        font-size: 0.82rem;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        user-select: none;
-      `;
-
-      pill.addEventListener('click', () => {
-        this.heartbeatCheck();
-        this.syncOutbox();
-      });
-
-      document.body.appendChild(pill);
-      this.updatePillUI();
+      const existing = document.getElementById('unixsport-sync-pill');
+      if (existing) existing.remove();
     }
 
-    updatePillUI(forcedState) {
-      const pill = document.getElementById('unixsport-sync-pill');
-      if (!pill) return;
-
-      const queue = this.getOutbox();
-      const state = forcedState || (this.isSyncing ? 'syncing' : (!this.isOnlineState ? 'offline' : (queue.length > 0 ? 'pending' : 'online')));
-
-      if (state === 'syncing') {
-        pill.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
-        pill.style.color = '#ffffff';
-        pill.innerHTML = '<i class="fas fa-arrows-rotate fa-spin"></i> Syncing with MongoDB...';
-      } else if (state === 'offline') {
-        pill.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
-        pill.style.color = '#ffffff';
-        pill.innerHTML = `<i class="fas fa-wifi-slash"></i> Offline (${queue.length} queued)`;
-      } else if (state === 'pending') {
-        pill.style.background = 'linear-gradient(135deg, #d97706, #b45309)';
-        pill.style.color = '#ffffff';
-        pill.innerHTML = `<i class="fas fa-cloud-arrow-up"></i> ${queue.length} Pending Upload`;
-      } else {
-        pill.style.background = 'linear-gradient(135deg, #059669, #047857)';
-        pill.style.color = '#ffffff';
-        pill.innerHTML = '<i class="fas fa-shield-halved"></i> Hybrid Cloud Synced';
-        // Auto fade online badge slightly
-        pill.style.opacity = '0.85';
-      }
+    updatePillUI() {
+      const existing = document.getElementById('unixsport-sync-pill');
+      if (existing) existing.remove();
     }
   }
 
