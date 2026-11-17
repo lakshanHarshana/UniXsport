@@ -83,6 +83,23 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const apiRes = await window.UniXsportAPI.login(username, password, role);
             if (apiRes && apiRes.success) {
+                const portalRole = String(role || 'student').trim().toLowerCase();
+                const accountRole = String(apiRes.user?.role || '').trim().toLowerCase();
+
+                if (portalRole && accountRole && portalRole !== accountRole) {
+                    const roleNames = {
+                        student: 'Student',
+                        coach: 'Gym Coach',
+                        storekeeper: 'Storekeeper',
+                        admin: 'Administrator'
+                    };
+                    const portalName = roleNames[portalRole] || portalRole;
+                    const accountName = roleNames[accountRole] || accountRole;
+                    showToast('Access Denied: This portal is for ' + portalName + ' accounts only. Your account is ' + accountName + '. Please use the ' + accountName + ' Portal.', 'error');
+                    shakeCard();
+                    return;
+                }
+
                 const normalizedRole = (apiRes.user.role || role || '').toLowerCase();
                 const finalUserName = apiRes.user.regNo || apiRes.user.name;
 
@@ -120,22 +137,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('user_id', apiRes.user.user_id || apiRes.user.userId || '');
                 localStorage.setItem('userId', apiRes.user.user_id || apiRes.user.userId || '');
 
-                const userPhoto = apiRes.user.profilePhoto || apiRes.user.profileImage || apiRes.user.avatarUrl || '';
-                if (userPhoto) {
-                    localStorage.setItem('unixsport_profile_photo_' + finalUserName.replace(/\//g, '_'), userPhoto);
-                    if (apiRes.user.regNo) {
-                        localStorage.setItem('unixsport_profile_photo_' + apiRes.user.regNo.replace(/\//g, '_'), userPhoto);
+                // Purge any old stale profile/equipment caches from previous sessions
+                try {
+                    const keysToPurge = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const k = localStorage.key(i);
+                        if (k && (k.startsWith('unixsport_profile_') || k.startsWith('unixsport_student_') || k.startsWith('unixsport_borrow_') || k.startsWith('unixsport_equipment'))) {
+                            keysToPurge.push(k);
+                        }
                     }
-                }
-
-                // If student, sync full profile object to profileKey
-                if (normalizedRole === 'student') {
-                    const profileKey = 'unixsport_profile_' + finalUserName.replace(/\//g, '_');
-                    localStorage.setItem(profileKey, JSON.stringify(apiRes.user));
-                    if (apiRes.user.regNo) {
-                        localStorage.setItem('unixsport_profile_' + apiRes.user.regNo.replace(/\//g, '_'), JSON.stringify(apiRes.user));
-                    }
-                }
+                    keysToPurge.forEach(k => localStorage.removeItem(k));
+                } catch(e) {}
 
                 showToast('Authentication successful! Redirecting...', 'success');
 

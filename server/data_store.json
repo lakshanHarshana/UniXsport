@@ -18,7 +18,7 @@
       "profileImage": "/uploads/avatars/admin_US001_1787160833181.jpg",
       "profilePhoto": "/uploads/avatars/admin_US001_1787160833181.jpg",
       "updatedAt": "2026-08-19T17:35:34.029Z",
-      "password": "password"
+      "_version": 1
     },
     {
       "id": "usr_1788807308169_og9mc",
@@ -41,7 +41,6 @@
       "trainingGoal": "General Fitness",
       "bio": "Member of Rajarata University Sports & Gym Club.",
       "passwordHash": "$2a$10$njFLqfVpPc.XvPiH723ziOAexOXNiDbLcMLJEpcYHCLem0LNStqP6",
-      "password": "password123",
       "role": "student",
       "rfidTag": "A1B2C3D4",
       "rfidCode": "A1B2C3D4",
@@ -50,7 +49,9 @@
       "profileImage": "",
       "profilePhoto": "",
       "createdAt": "2026-09-07T18:55:08.169Z",
-      "rfid": "A1B2C3D4"
+      "rfid": "A1B2C3D4",
+      "_version": 1,
+      "updatedAt": "2026-09-07T18:55:08.169Z"
     },
     {
       "id": "usr_1788808730908_61usn",
@@ -73,7 +74,6 @@
       "trainingGoal": "Build Muscle",
       "bio": "Mobile updated bio text",
       "passwordHash": "$2a$10$5WmLxz0AAvjhkvKLxiWCD./9X9Q7M0UOd22/SNj7ZDvcTgaDFpcmy",
-      "password": "password123",
       "role": "student",
       "rfidTag": "",
       "rfidCode": "",
@@ -82,7 +82,8 @@
       "profileImage": "/uploads/avatars/student_US003_1788808730983.png",
       "profilePhoto": "/uploads/avatars/student_US003_1788808730983.png",
       "createdAt": "2026-09-07T19:18:50.908Z",
-      "updatedAt": "2026-09-07T19:18:50.983Z"
+      "updatedAt": "2026-09-07T19:18:50.983Z",
+      "_version": 1
     },
     {
       "id": "usr_1788809483872_gv42d",
@@ -105,7 +106,6 @@
       "trainingGoal": "Build Muscle",
       "bio": "Updated bio from mobile phone!",
       "passwordHash": "$2a$10$vEbprWIBKFYTbKeOW7eum.2bAdkrSruxvy3s6Lio4./0nA.DGqQzS",
-      "password": "password123",
       "role": "student",
       "rfidTag": "",
       "rfidCode": "",
@@ -114,7 +114,8 @@
       "profileImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       "profilePhoto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       "createdAt": "2026-09-07T19:31:23.872Z",
-      "updatedAt": "2026-09-07T19:38:41.492Z"
+      "updatedAt": "2026-09-07T19:38:41.492Z",
+      "_version": 1
     },
     {
       "id": "usr_coach1",
@@ -124,7 +125,6 @@
       "username": "COACH001",
       "name": "Mike",
       "email": "mike@coach.edu",
-      "password": "password123",
       "passwordHash": "$2a$10$H.qVMWSbY.QpJMPwyxXUKuNpUGmfa3Ml.klagX.WqIDtKTOInrj82",
       "role": "coach",
       "rfidTag": "A1B2C3D4",
@@ -132,7 +132,9 @@
       "department": "Physical Education",
       "status": "active",
       "avatarUrl": "",
-      "createdAt": "2026-08-18T05:27:19.821Z"
+      "createdAt": "2026-08-18T05:27:19.821Z",
+      "_version": 1,
+      "updatedAt": "2026-08-18T05:27:19.821Z"
     },
     {
       "id": "usr_coach2",
@@ -142,7 +144,6 @@
       "username": "COACH002",
       "name": "Sarah",
       "email": "sarah@coach.edu",
-      "password": "password123",
       "passwordHash": "$2a$10$H.qVMWSbY.QpJMPwyxXUKuNpUGmfa3Ml.klagX.WqIDtKTOInrj82",
       "role": "coach",
       "rfidTag": "B2C3D4E5",
@@ -150,7 +151,9 @@
       "department": "Strength & Conditioning",
       "status": "active",
       "avatarUrl": "",
-      "createdAt": "2026-08-18T05:27:19.821Z"
+      "createdAt": "2026-08-18T05:27:19.821Z",
+      "_version": 1,
+      "updatedAt": "2026-08-18T05:27:19.821Z"
     },
     {
       "id": "usr_coach3",
@@ -160,7 +163,6 @@
       "username": "COACH003",
       "name": "John",
       "email": "john@coach.edu",
-      "password": "password123",
       "passwordHash": "$2a$10$H.qVMWSbY.QpJMPwyxXUKuNpUGmfa3Ml.klagX.WqIDtKTOInrj82",
       "role": "coach",
       "rfidTag": "C3D4E5F6",
@@ -168,7 +170,9 @@
       "department": "Athletics",
       "status": "active",
       "avatarUrl": "",
-      "createdAt": "2026-08-18T05:27:19.821Z"
+      "createdAt": "2026-08-18T05:27:19.821Z",
+      "_version": 1,
+      "updatedAt": "2026-08-18T05:27:19.821Z"
     },
     {
       "id": "usr_store1",
@@ -178,7 +182,6 @@
       "username": "STORE001",
       "name": "Sam Storekeeper",
       "email": "storekeeper@unixsport.edu",
-      "password": "password123",
       "passwordHash": "$2a$10$H.qVMWSbY.QpJMPwyxXUKuNpUGmfa3Ml.klagX.WqIDtKTOInrj82",
       "role": "storekeeper",
       "rfidTag": "E5F67890",
@@ -186,7 +189,9 @@
       "department": "Sports Equipment Room",
       "status": "active",
       "avatarUrl": "",
-      "createdAt": "2026-08-18T05:27:19.822Z"
+      "createdAt": "2026-08-18T05:27:19.822Z",
+      "_version": 1,
+      "updatedAt": "2026-08-18T05:27:19.822Z"
     }
   ],
   "equipment": [
@@ -205,7 +210,9 @@
       "rfidTag": "",
       "rfidCode": "",
       "rfid": "",
-      "description": ""
+      "description": "",
+      "_version": 1,
+      "updatedAt": "2026-11-17T11:44:49.223Z"
     }
   ],
   "borrowLogs": [],
@@ -268,7 +275,9 @@
       ],
       "createdAt": "2026-09-07T21:35:58.242Z",
       "approvedBy": "Sarah",
-      "approvedAt": "2026-09-07T21:35:58.372Z"
+      "approvedAt": "2026-09-07T21:35:58.372Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T21:35:58.242Z"
     },
     {
       "id": "req_1788815897947",
@@ -328,7 +337,9 @@
       ],
       "createdAt": "2026-09-07T21:18:17.947Z",
       "approvedBy": "Sarah",
-      "approvedAt": "2026-09-07T21:18:18.087Z"
+      "approvedAt": "2026-09-07T21:18:18.087Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T21:18:17.947Z"
     }
   ],
   "workoutPlans": [
@@ -365,7 +376,8 @@
         }
       ],
       "coachNotes": "Great goal! Make sure to warmup properly and keep high intensity.",
-      "updatedAt": "2026-09-07T21:35:58.381Z"
+      "updatedAt": "2026-09-07T21:35:58.381Z",
+      "_version": 1
     }
   ],
   "notices": [
@@ -377,7 +389,9 @@
       "visibleTo": "US_CK1",
       "targetCoachId": "US_CK1",
       "createdBy": "System",
-      "createdAt": "2026-09-07T20:24:36.551Z"
+      "createdAt": "2026-09-07T20:24:36.551Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T20:24:36.551Z"
     },
     {
       "id": "not_1788812676560",
@@ -391,7 +405,9 @@
       "createdBy": "Kamal Perera",
       "creatorRole": "coach",
       "creatorId": "usr_coach_kamal",
-      "createdAt": "2026-09-07T20:24:36.560Z"
+      "createdAt": "2026-09-07T20:24:36.560Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T20:24:36.560Z"
     },
     {
       "id": "not_1788812683601",
@@ -401,7 +417,9 @@
       "visibleTo": "US_CK1",
       "targetCoachId": "US_CK1",
       "createdBy": "System",
-      "createdAt": "2026-09-07T20:24:43.601Z"
+      "createdAt": "2026-09-07T20:24:43.601Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T20:24:43.601Z"
     },
     {
       "id": "not_1788812683610",
@@ -415,7 +433,9 @@
       "createdBy": "Kamal Perera",
       "creatorRole": "coach",
       "creatorId": "usr_coach_kamal",
-      "createdAt": "2026-09-07T20:24:43.610Z"
+      "createdAt": "2026-09-07T20:24:43.610Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T20:24:43.610Z"
     },
     {
       "id": "not_1788813595922",
@@ -425,7 +445,9 @@
       "visibleTo": "US006",
       "targetCoachId": "US006",
       "createdBy": "System",
-      "createdAt": "2026-09-07T20:39:55.922Z"
+      "createdAt": "2026-09-07T20:39:55.922Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T20:39:55.922Z"
     },
     {
       "id": "not_1788814301206",
@@ -435,7 +457,9 @@
       "visibleTo": "US006",
       "targetCoachId": "US006",
       "createdBy": "System",
-      "createdAt": "2026-09-07T20:51:41.206Z"
+      "createdAt": "2026-09-07T20:51:41.206Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T20:51:41.206Z"
     },
     {
       "id": "not_1788815897947",
@@ -445,7 +469,9 @@
       "visibleTo": "US006",
       "targetCoachId": "US006",
       "createdBy": "System",
-      "createdAt": "2026-09-07T21:18:17.947Z"
+      "createdAt": "2026-09-07T21:18:17.947Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T21:18:17.947Z"
     },
     {
       "id": "not_1788815898087",
@@ -459,7 +485,9 @@
       "createdBy": "Sarah",
       "creatorRole": "coach",
       "creatorId": "usr_coach2",
-      "createdAt": "2026-09-07T21:18:18.087Z"
+      "createdAt": "2026-09-07T21:18:18.087Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T21:18:18.087Z"
     },
     {
       "id": "not_1788816958242",
@@ -469,7 +497,9 @@
       "visibleTo": "US006",
       "targetCoachId": "US006",
       "createdBy": "System",
-      "createdAt": "2026-09-07T21:35:58.242Z"
+      "createdAt": "2026-09-07T21:35:58.242Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T21:35:58.242Z"
     },
     {
       "id": "not_1788816958372",
@@ -483,7 +513,9 @@
       "createdBy": "Sarah",
       "creatorRole": "coach",
       "creatorId": "usr_coach2",
-      "createdAt": "2026-09-07T21:35:58.372Z"
+      "createdAt": "2026-09-07T21:35:58.372Z",
+      "_version": 1,
+      "updatedAt": "2026-09-07T21:35:58.372Z"
     }
   ],
   "facilities": [
@@ -495,7 +527,9 @@
       "location": "Building A, Floor 1",
       "status": "available",
       "type": "gym",
-      "iconClass": "fa-dumbbell"
+      "iconClass": "fa-dumbbell",
+      "_version": 1,
+      "updatedAt": "2026-11-17T11:44:49.223Z"
     },
     {
       "id": "fac_02",
@@ -505,7 +539,9 @@
       "location": "Building A, Floor 2",
       "status": "available",
       "type": "yoga",
-      "iconClass": "fa-person-hiking"
+      "iconClass": "fa-person-hiking",
+      "_version": 1,
+      "updatedAt": "2026-11-17T11:44:49.223Z"
     },
     {
       "id": "fac_03",
@@ -515,7 +551,9 @@
       "location": "Building B",
       "status": "available",
       "type": "swimming",
-      "iconClass": "fa-water"
+      "iconClass": "fa-water",
+      "_version": 1,
+      "updatedAt": "2026-11-17T11:44:49.223Z"
     },
     {
       "id": "fac_04",
@@ -525,7 +563,9 @@
       "location": "Building C",
       "status": "available",
       "type": "basketball",
-      "iconClass": "fa-basketball"
+      "iconClass": "fa-basketball",
+      "_version": 1,
+      "updatedAt": "2026-11-17T11:44:49.223Z"
     },
     {
       "id": "fac_05",
@@ -535,7 +575,9 @@
       "location": "Building A, Floor 3",
       "status": "available",
       "type": "training",
-      "iconClass": "fa-heart-pulse"
+      "iconClass": "fa-heart-pulse",
+      "_version": 1,
+      "updatedAt": "2026-11-17T11:44:49.223Z"
     },
     {
       "id": "fac_06",
@@ -545,7 +587,9 @@
       "location": "Building A, Ground Floor",
       "status": "available",
       "type": "lounge",
-      "iconClass": "fa-couch"
+      "iconClass": "fa-couch",
+      "_version": 1,
+      "updatedAt": "2026-11-17T11:44:49.223Z"
     }
   ],
   "events": [
@@ -701,5 +745,13 @@
     "lastUserIdSeq": 8
   },
   "latestRfidScan": null,
-  "reviews": []
+  "reviews": [],
+  "processedMutations": [
+    {
+      "id": "mut_test_1794912407968",
+      "mutationId": "mut_test_1794912407968",
+      "action": "UPDATE_PROFILE",
+      "processedAt": "2026-11-17T10:46:48.068Z"
+    }
+  ]
 }

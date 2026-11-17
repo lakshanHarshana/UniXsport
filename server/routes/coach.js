@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const config = require('../config');
-const { db, saveDatabase } = require('../db');
+const { db, saveDatabase, getMongoDb } = require('../db');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 // Multer storage for PDF Schedule Uploads
@@ -186,7 +186,7 @@ router.post('/approve-request', (req, res, next) => {
     }
     next();
   });
-}, (req, res) => {
+}, async (req, res) => {
   try {
     const { requestId, coachNotes, comment, weeklyExercises } = req.body;
 
@@ -208,19 +208,45 @@ router.post('/approve-request', (req, res, next) => {
         return res.status(400).json({ success: false, error: `Cannot process: request is already ${request.status}.` });
     }
 
-    // Check Slot Capacity Enforcement (MAX 30)
-    const existingCount = db.gymRequests.filter(
-      r => (r.requestedDate === request.requestedDate || r.date === request.requestedDate) &&
-           (r.timeSlot === request.timeSlot || r.preferredTime === request.timeSlot) &&
-           r.status === 'approved' &&
-           String(r.id) !== String(requestId)
-    ).length;
-
+    // Atomic Slot Capacity Lock (MAX 30)
+    const targetDate = request.requestedDate || request.date;
+    const targetSlot = request.timeSlot || request.preferredTime;
     const maxCap = config.MAX_SLOT_CAPACITY || 30;
+
+    const mongo = typeof getMongoDb === 'function' ? getMongoDb() : null;
+    let existingCount = 0;
+
+    if (mongo) {
+      try {
+        existingCount = await mongo.collection('gymRequests').countDocuments({
+          $and: [
+            { $or: [{ requestedDate: targetDate }, { date: targetDate }] },
+            { $or: [{ timeSlot: targetSlot }, { preferredTime: targetSlot }] },
+            { status: 'approved' },
+            { id: { $ne: String(requestId) } }
+          ]
+        });
+      } catch (e) {
+        existingCount = db.gymRequests.filter(
+          r => (r.requestedDate === targetDate || r.date === targetDate) &&
+               (r.timeSlot === targetSlot || r.preferredTime === targetSlot) &&
+               r.status === 'approved' &&
+               String(r.id) !== String(requestId)
+        ).length;
+      }
+    } else {
+      existingCount = db.gymRequests.filter(
+        r => (r.requestedDate === targetDate || r.date === targetDate) &&
+             (r.timeSlot === targetSlot || r.preferredTime === targetSlot) &&
+             r.status === 'approved' &&
+             String(r.id) !== String(requestId)
+      ).length;
+    }
+
     if (existingCount >= maxCap) {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
-        error: `Slot (${request.timeSlot}) is FULL (${existingCount}/${maxCap}). Cannot approve request.`
+        error: `Slot (${targetSlot}) is FULL (${existingCount}/${maxCap}). Cannot approve request.`
       });
     }
 
@@ -291,6 +317,19 @@ router.post('/approve-request', (req, res, next) => {
     db.notices.push(notification);
 
     saveDatabase();
+
+    if (mongo) {
+      try {
+        const cleanReq = { ...request };
+        delete cleanReq._id;
+        await mongo.collection('gymRequests').replaceOne({ id: request.id }, cleanReq, { upsert: true });
+        if (plan) {
+          const cleanPlan = { ...plan };
+          delete cleanPlan._id;
+          await mongo.collection('workoutPlans').replaceOne({ id: plan.id }, cleanPlan, { upsert: true });
+        }
+      } catch (e) {}
+    }
 
     res.json({
       success: true,

@@ -47,7 +47,8 @@ const COLLECTIONS = [
   'rfidScans',
   'sessions',
   'contactMessages',
-  'reviews'
+  'reviews',
+  'processedMutations'
 ];
 
 /**
@@ -121,6 +122,23 @@ function migrateUserIds() {
 }
 
 /**
+ * Remove legacy cleartext passwords from user records for security & privacy
+ */
+function scrubPlaintextPasswords() {
+  if (!data.users) return;
+  let scrubbed = false;
+  data.users.forEach(u => {
+    if (u.passwordHash && u.password) {
+      delete u.password;
+      scrubbed = true;
+    }
+  });
+  if (scrubbed) {
+    saveDatabase();
+  }
+}
+
+/**
  * Connect to MongoDB Atlas and synchronize with local cache
  */
 async function connectMongoDB() {
@@ -176,6 +194,7 @@ async function connectMongoDB() {
 
     console.log(`[UniXsport Database] Synchronized ${totalLoaded} documents from MongoDB Atlas.`);
     migrateUserIds();
+    scrubPlaintextPasswords();
     // Update local JSON cache as instant offline mirror
     saveLocalJson();
   } catch (err) {
@@ -207,8 +226,22 @@ function initLocalDatabase() {
   if (!data.sessions) data.sessions = [];
   if (!data.contactMessages) data.contactMessages = [];
   if (!data.reviews) data.reviews = [];
+  if (!data.processedMutations) data.processedMutations = [];
+
+  // Super Hybrid: Ensure versioning on all collections
+  const collectionsToCheck = ['users', 'equipment', 'borrowLogs', 'gymRequests', 'workoutPlans', 'notices', 'facilities'];
+  const now = new Date().toISOString();
+  collectionsToCheck.forEach(col => {
+    if (Array.isArray(data[col])) {
+      data[col].forEach(doc => {
+        if (!doc._version) doc._version = 1;
+        if (!doc.updatedAt) doc.updatedAt = doc.createdAt || now;
+      });
+    }
+  });
 
   migrateUserIds();
+  scrubPlaintextPasswords();
   saveLocalJson();
 }
 
@@ -315,6 +348,18 @@ async function syncToMongoInternal() {
   }
 }
 
+async function syncDocToMongo(colName, filter, doc) {
+  if (!isMongoConnected || !mongoDbInstance) return;
+  try {
+    const col = mongoDbInstance.collection(colName);
+    const clean = Object.assign({}, doc);
+    delete clean._id;
+    await col.replaceOne(filter, clean, { upsert: true });
+  } catch (err) {
+    console.error('[MongoDB Direct Sync] Failed for ' + colName + ':', err.message);
+  }
+}
+
 /**
  * Universal saveDatabase: Atomically updates local mirror and triggers atomic upsert to MongoDB
  */
@@ -337,6 +382,9 @@ module.exports = {
   data,
   saveDatabase,
   generateNextUserId,
+  syncDocToMongo,
+  getMongoDb: () => isMongoConnected ? mongoDbInstance : null,
+  isMongoConnected: () => isMongoConnected,
   get users() { return data.users; },
   get equipment() { return data.equipment; },
   get borrowLogs() { return data.borrowLogs; },
@@ -348,5 +396,6 @@ module.exports = {
   get rfidScans() { return data.rfidScans; },
   get sessions() { return data.sessions; },
   get contactMessages() { return data.contactMessages; },
-  get reviews() { return data.reviews; }
+  get reviews() { return data.reviews; },
+  get processedMutations() { return data.processedMutations; }
 };

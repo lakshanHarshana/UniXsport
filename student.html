@@ -18,14 +18,18 @@
             function checkAuth() {
                 const tabToken = sessionStorage.getItem('unixsport_token_student') || sessionStorage.getItem('unixsport_jwt_token') || sessionStorage.getItem('token');
                 const tabRole = (sessionStorage.getItem('userRole') || '').toLowerCase();
+                if (tabRole && tabRole !== 'student') {
+                    window.location.replace('login.html?role=student');
+                    return;
+                }
                 const roleToken = localStorage.getItem('unixsport_token_student');
                 const roleUser = localStorage.getItem('unixsport_user_student');
                 const legacyRole = (localStorage.getItem('userRole') || '').toLowerCase();
                 const legacyToken = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
 
                 const isValidStudent = (tabToken && tabRole === 'student') ||
-                                       roleToken ||
-                                       roleUser ||
+                                       (roleToken && (legacyRole === 'student' || !legacyRole)) ||
+                                       (roleUser && (legacyRole === 'student' || !legacyRole)) ||
                                        (legacyRole === 'student' && legacyToken);
 
                 if (!isValidStudent) {
@@ -459,6 +463,12 @@
                         <label>Notes (Optional)</label>
                         <textarea name="notes" rows="3" placeholder="Any special requests or notes..."></textarea>
                     </div>
+                    <div class="form-group" style="background: rgba(37,99,235,0.05); border: 1px solid rgba(37,99,235,0.15); border-radius: 8px; padding: 12px 14px; margin-top: 10px;">
+                        <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 0.88rem; font-weight: normal; color: var(--gray-700); margin-bottom: 0;">
+                            <input type="checkbox" name="healthConsent" id="healthConsentCheckbox" required style="margin-top: 3px; width: 16px; height: 16px; accent-color: var(--primary);">
+                            <span><strong>Health &amp; Privacy Consent:</strong> I authorize the Rajarata University Sports Directorate and my assigned Gym Coach to view my physical metrics (height, weight, fitness level) and declared injury history strictly for personalized training safety and schedule design.</span>
+                        </label>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-submit">
                     <i class="fas fa-paper-plane"></i> Submit Request
@@ -617,6 +627,7 @@
     </div>
 
     <script src="js/api.js?v=4.0"></script>
+    <script src="js/sync-engine.js"></script>
     <script src="js/app.js?v=4.0"></script>
     <script src="js/colombo-clock.js?v=4.0"></script>
 </body>

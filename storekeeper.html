@@ -18,14 +18,18 @@
             function checkAuth() {
                 const tabToken = sessionStorage.getItem('unixsport_token_storekeeper') || sessionStorage.getItem('unixsport_jwt_token') || sessionStorage.getItem('token');
                 const tabRole = (sessionStorage.getItem('userRole') || '').toLowerCase();
+                if (tabRole && tabRole !== 'storekeeper') {
+                    window.location.replace('login.html?role=storekeeper');
+                    return;
+                }
                 const roleToken = localStorage.getItem('unixsport_token_storekeeper');
                 const roleUser = localStorage.getItem('unixsport_user_storekeeper');
                 const legacyRole = (localStorage.getItem('userRole') || '').toLowerCase();
                 const legacyToken = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
 
                 const isValidStorekeeper = (tabToken && tabRole === 'storekeeper') ||
-                                           roleToken ||
-                                           roleUser ||
+                                           (roleToken && (legacyRole === 'storekeeper' || !legacyRole)) ||
+                                           (roleUser && (legacyRole === 'storekeeper' || !legacyRole)) ||
                                            (legacyRole === 'storekeeper' && legacyToken);
 
                 if (!isValidStorekeeper) {
@@ -1258,6 +1262,7 @@
     </div>
 
     <script src="js/api.js?v=3.0.0"></script>
+    <script src="js/sync-engine.js"></script>
     <script src="js/bluetooth-manager.js?v=3.0.0"></script>
     <script src="js/storekeeper.js?v=3.0.0"></script>
     <script src="js/colombo-clock.js?v=3.0.0"></script>

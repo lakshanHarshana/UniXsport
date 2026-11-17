@@ -32,6 +32,7 @@ const char* WIFI_PASSWORD = "12345678";           // Wi-Fi Password
 // Cloud Production API (Default - Works over any Wi-Fi / Hotspot)
 const char* SERVER_URL    = "https://unixsport-api.onrender.com/api/rfid/scan";
 const char* DEVICE_ID     = "STORE_GATE_01";
+const char* DEVICE_API_KEY = "unixsport_rfid_device_key_2026";
 // ====================================================== //
 
 #define SS_PIN    15  // D8
@@ -147,12 +148,14 @@ void sendScanToServer(String cardUID) {
     http.begin(secureClient, SERVER_URL);
     http.setTimeout(12000);
     http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-API-Key", DEVICE_API_KEY);
     httpResponseCode = http.POST(jsonPayload);
   } else {
     WiFiClient plainClient;
     http.begin(plainClient, SERVER_URL);
     http.setTimeout(8000);
     http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-API-Key", DEVICE_API_KEY);
     httpResponseCode = http.POST(jsonPayload);
   }
 

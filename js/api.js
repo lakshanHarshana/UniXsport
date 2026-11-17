@@ -95,9 +95,7 @@ class UniXsportAPI {
       sessionStorage.setItem('unixsport_user_profile', str);
       if (role) {
         sessionStorage.setItem(`unixsport_user_${role}`, str);
-        localStorage.setItem(`unixsport_user_${role}`, str);
       }
-      localStorage.setItem('unixsport_user_profile', str);
     } else {
       sessionStorage.removeItem('unixsport_user_profile');
       if (role) {
@@ -176,6 +174,32 @@ class UniXsportAPI {
       }
     }
 
+    // Super Hybrid: If offline and mutating, queue safely in outbox instead of failing
+    const isNetworkError = !lastError || (lastError.message && (lastError.message.includes('fetch') || lastError.message.includes('NetworkError') || lastError.message.includes('Failed to fetch')));
+    const method = (options.method || 'GET').toUpperCase();
+
+    if (isNetworkError && method !== 'GET' && typeof window !== 'undefined' && window.UniXsportSync) {
+      let bodyObj = {};
+      try {
+        if (typeof options.body === 'string') bodyObj = JSON.parse(options.body);
+      } catch(e) {}
+
+      let action = 'MUTATION';
+      let entityId = bodyObj.id || bodyObj.user_id || bodyObj.regNo || bodyObj.equipmentId || '';
+      if (endpoint.includes('update-profile')) action = 'UPDATE_PROFILE';
+      else if (endpoint.includes('equipment-request')) action = 'CREATE_REQUEST';
+      else if (endpoint.includes('schedule-request')) action = 'CREATE_REQUEST';
+      else if (endpoint.includes('take') || endpoint.includes('borrow')) action = 'BORROW_EQUIPMENT';
+      else if (endpoint.includes('return')) action = 'RETURN_EQUIPMENT';
+
+      window.UniXsportSync.enqueueMutation(action, entityId, bodyObj);
+      return {
+        success: true,
+        offline: true,
+        message: 'Offline Mode: Your change has been queued safely and will sync to Cloud MongoDB Atlas as soon as internet reconnects.'
+      };
+    }
+
     console.error(`[API Error] ${endpoint}:`, lastError ? lastError.message : 'Network error');
     throw lastError || new Error('Network error: Unable to connect to UniXsport database server.');
   }
@@ -203,6 +227,10 @@ class UniXsportAPI {
     });
   }
 
+  static async getEquipment() {
+    return await this.request('/api/student/equipment');
+  }
+
   static async logout() {
     const role = this.getRoleFromContext();
     try {
@@ -214,15 +242,20 @@ class UniXsportAPI {
       this.setToken(null, currentRole);
       this.setUser(null, currentRole);
       sessionStorage.clear();
-      if (currentRole) {
-        localStorage.removeItem(`unixsport_token_${currentRole}`);
-        localStorage.removeItem(`unixsport_user_${currentRole}`);
-      }
-      if (currentRole === 'admin') {
-        window.location.replace('login.html?role=admin');
-      } else {
-        window.location.replace('home.html');
-      }
+
+      // Wipe all user, token and profile caches from localStorage (preserve only darkMode)
+      try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k !== 'darkMode') {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (e) {}
+
+      window.location.replace('home.html');
     }
   }
 

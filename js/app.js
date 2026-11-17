@@ -601,12 +601,20 @@ function initDarkMode() {
 function handleStudentLogout(e) {
     if (e) e.preventDefault();
     if (confirm('Are you sure you want to logout?')) {
+        sessionStorage.clear();
+        try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k !== 'darkMode') {
+                    keysToRemove.push(k);
+                }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+        } catch(e) {}
         if (window.UniXsportAPI && typeof window.UniXsportAPI.logout === 'function') {
             window.UniXsportAPI.logout();
         } else {
-            localStorage.removeItem('userRole');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userProfile');
             window.location.replace('home.html');
         }
     }
@@ -631,29 +639,14 @@ function initEditProfileForm() {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         }
 
-        const userName = localStorage.getItem('userName') || 'student';
-        const profileKey = 'unixsport_profile_' + userName.replace(/\//g, '_');
-        
-        let existingData = {};
-        const saved = localStorage.getItem(profileKey);
-        if (saved) {
-            try {
-                existingData = JSON.parse(saved);
-            } catch (err) {}
-        }
-
-        const nameVal = form.querySelector('[name="name"]')?.value?.trim() || existingData.name || localStorage.getItem('userRealName') || userName;
-        const regNo = form.querySelector('[name="regNo"]')?.value?.trim() || existingData.regNo || localStorage.getItem('userRegNo') || userName.toUpperCase();
-        const email = form.querySelector('[name="email"]')?.value?.trim() || existingData.email || localStorage.getItem('userEmail') || `${userName.toLowerCase()}@tec.rjt.ac.lk`;
-        const faculty = form.querySelector('[name="faculty"]')?.value?.trim() || existingData.faculty || existingData.department || localStorage.getItem('userFaculty') || 'Technology';
-        const userId = form.querySelector('[name="user_id"]')?.value?.trim() || existingData.user_id || existingData.userId || localStorage.getItem('user_id') || 'US002';
+        const nameVal = form.querySelector('[name="name"]')?.value?.trim();
+        const regNo = form.querySelector('[name="regNo"]')?.value?.trim();
+        const email = form.querySelector('[name="email"]')?.value?.trim();
+        const faculty = form.querySelector('[name="faculty"]')?.value?.trim();
+        const userId = form.querySelector('[name="user_id"]')?.value?.trim();
         const currentPassword = form.querySelector('[name="currentPassword"]')?.value || '';
         const newPassword = form.querySelector('[name="newPassword"]')?.value || '';
-        const bioVal = form.querySelector('[name="bio"]')?.value?.trim() || existingData.bio || 'Member of Rajarata University Sports & Gym Club.';
-        
-        // Check if there is an active profile photo in storage or existing data
-        const photoKey = 'unixsport_profile_photo_' + (regNo || userName).replace(/\//g, '_');
-        const activePhoto = localStorage.getItem(photoKey) || existingData.profilePhoto || existingData.profileImage || existingData.avatarUrl || '';
+        const bioVal = form.querySelector('[name="bio"]')?.value?.trim();
 
         // Check if a new file was chosen in the file input
         const fileInput = form.querySelector('[name="profilePhoto"]');
@@ -669,11 +662,7 @@ function initEditProfileForm() {
             } catch (err) {}
         }
 
-        const finalPhoto = selectedFileBase64 || activePhoto;
-
-        // Update profile object
         const updatedData = {
-            ...existingData,
             user_id: userId,
             userId: userId,
             regNo: regNo,
@@ -683,9 +672,6 @@ function initEditProfileForm() {
             department: faculty,
             name: nameVal,
             bio: bioVal,
-            profilePhoto: finalPhoto,
-            profileImage: finalPhoto,
-            avatarUrl: finalPhoto,
             age: form.querySelector('[name="age"]')?.value || '',
             height: form.querySelector('[name="height"]')?.value || '',
             weight: form.querySelector('[name="weight"]')?.value || '',
@@ -698,22 +684,10 @@ function initEditProfileForm() {
             newPassword: newPassword ? newPassword.trim() : undefined
         };
 
-        // If a new photo file was picked, upload it via dedicated upload endpoint too
         if (selectedFileBase64) {
-            try {
-                await fetchStudentAPI('/api/student/upload-photo', {
-                    method: 'POST',
-                    body: JSON.stringify({ base64Image: selectedFileBase64, image: selectedFileBase64 })
-                });
-                localStorage.setItem(photoKey, selectedFileBase64);
-            } catch (uploadErr) {
-                console.warn('Photo upload in form submit note:', uploadErr);
-            }
+            updatedData.profilePhoto = selectedFileBase64;
+            updatedData.avatarUrl = selectedFileBase64;
         }
-
-        // 1. Send update to backend database API FIRST
-        let updateSuccess = false;
-        let serverErrorMsg = '';
 
         try {
             const resData = await fetchStudentAPI('/api/student/update-profile', {
@@ -721,77 +695,43 @@ function initEditProfileForm() {
                 body: JSON.stringify(updatedData)
             });
 
-            if (resData && resData.success) {
-                updateSuccess = true;
-                if (resData.user) {
-                    Object.assign(updatedData, resData.user);
-                }
-            } else if (resData && resData.error) {
-                serverErrorMsg = resData.error;
+            if (resData && resData.success && resData.user) {
+                const liveUser = resData.user;
+                // Update active student session object
+                sessionStorage.setItem('unixsport_user_student', JSON.stringify(liveUser));
+                sessionStorage.setItem('userRealName', liveUser.name);
+                sessionStorage.setItem('userName', liveUser.regNo || liveUser.name);
+                sessionStorage.setItem('userRegNo', liveUser.regNo);
+                sessionStorage.setItem('userEmail', liveUser.email);
+
+                // Reset password inputs in form
+                const curPwdInput = form.querySelector('[name="currentPassword"]');
+                const newPwdInput = form.querySelector('[name="newPassword"]');
+                const confPwdInput = form.querySelector('[name="confirmPassword"]');
+                if (curPwdInput) curPwdInput.value = '';
+                if (newPwdInput) newPwdInput.value = '';
+                if (confPwdInput) confPwdInput.value = '';
+
+                // Update UI display directly from real-time MongoDB response
+                updateProfileDisplay(liveUser);
+                const sidebarName = document.getElementById('studentName') || document.querySelector('.sidebar-user-name');
+                if (sidebarName) sidebarName.textContent = liveUser.name;
+                const studentRegNoEl = document.getElementById('studentRegNo');
+                if (studentRegNoEl) studentRegNoEl.textContent = liveUser.regNo;
+
+                showToast('Profile and security details updated successfully in MongoDB database!', 'success');
+                document.querySelector('.nav-link[data-page="profile"]')?.click();
+            } else {
+                throw new Error(resData?.error || 'Profile update failed on server');
             }
         } catch (apiErr) {
-            console.warn('Backend profile update note:', apiErr);
-            serverErrorMsg = apiErr.message;
-        }
-
-        if (!updateSuccess && serverErrorMsg) {
-            showToast(serverErrorMsg, 'error');
+            showToast(apiErr.message || 'Database error: Could not update profile.', 'error');
+        } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnHtml;
             }
-            return;
         }
-
-        // 2. Persist confirmed data to storage
-        localStorage.setItem(profileKey, JSON.stringify(updatedData));
-        if (regNo && regNo !== userName) {
-            const regProfileKey = 'unixsport_profile_' + regNo.replace(/\//g, '_');
-            localStorage.setItem(regProfileKey, JSON.stringify(updatedData));
-        }
-        localStorage.setItem('userRealName', nameVal);
-        localStorage.setItem('userName', regNo || nameVal);
-        localStorage.setItem('userRegNo', regNo);
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userFaculty', faculty);
-        localStorage.setItem('userDepartment', faculty);
-        localStorage.setItem('user_id', userId);
-        localStorage.setItem('userId', userId);
-        if (finalPhoto) {
-            localStorage.setItem(photoKey, finalPhoto);
-        }
-
-        // Update active student session user object
-        try {
-            const currentStudentObj = JSON.parse(sessionStorage.getItem('unixsport_user_student') || localStorage.getItem('unixsport_user_student') || '{}');
-            const updatedStudentObj = { ...currentStudentObj, ...updatedData };
-            sessionStorage.setItem('unixsport_user_student', JSON.stringify(updatedStudentObj));
-            localStorage.setItem('unixsport_user_student', JSON.stringify(updatedStudentObj));
-        } catch(e) {}
-
-        // Reset password inputs in form
-        const curPwdInput = form.querySelector('[name="currentPassword"]');
-        const newPwdInput = form.querySelector('[name="newPassword"]');
-        const confPwdInput = form.querySelector('[name="confirmPassword"]');
-        if (curPwdInput) curPwdInput.value = '';
-        if (newPwdInput) newPwdInput.value = '';
-        if (confPwdInput) confPwdInput.value = '';
-
-        // 3. Update profile display and navigate
-        updateProfileDisplay(updatedData);
-        const sidebarName = document.getElementById('studentName') || document.querySelector('.sidebar-user-name');
-        if (sidebarName) sidebarName.textContent = nameVal;
-        const studentRegNoEl = document.getElementById('studentRegNo');
-        if (studentRegNoEl) studentRegNoEl.textContent = regNo;
-
-        showToast('Profile and security details updated successfully in database!', 'success');
-
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnHtml;
-        }
-
-        document.querySelector('.nav-link[data-page="profile"]')?.click();
     });
 }
 
@@ -869,113 +809,58 @@ function updateProfileDisplay(data) {
 }
 
 async function loadProfileFromStorage() {
+    // 1. Instant zero-flicker preliminary display from current session
     const studentUser = (() => {
-        const raw = sessionStorage.getItem('unixsport_user_student') || localStorage.getItem('unixsport_user_student');
+        const raw = sessionStorage.getItem('unixsport_user_student');
         if (raw) {
             try { return JSON.parse(raw); } catch(e) {}
         }
         return null;
     })();
 
-    const userName = sessionStorage.getItem('userName') || studentUser?.regNo || studentUser?.name || localStorage.getItem('userName') || 'student';
-    const profileKey = 'unixsport_profile_' + userName.replace(/\//g, '_');
-    const photoKey = 'unixsport_profile_photo_' + (studentUser?.regNo || userName).replace(/\//g, '_');
-    
-    let localData = null;
-    const saved = localStorage.getItem(profileKey);
-    if (saved) {
-        try {
-            localData = JSON.parse(saved);
-        } catch (e) {}
+    if (studentUser) {
+        updateProfileDisplay(studentUser);
     }
 
-    const savedPhoto = localStorage.getItem(photoKey) || localData?.profilePhoto || studentUser?.profilePhoto || studentUser?.avatarUrl || '';
-
-    // Default fallback from session
-    const fallbackProfile = {
-        user_id: studentUser?.user_id || studentUser?.userId || sessionStorage.getItem('user_id') || sessionStorage.getItem('userId') || localStorage.getItem('user_id') || localStorage.getItem('userId') || '',
-        name: studentUser?.name || sessionStorage.getItem('userRealName') || localStorage.getItem('userRealName') || (userName.charAt(0).toUpperCase() + userName.slice(1)),
-        regNo: studentUser?.regNo || sessionStorage.getItem('userRegNo') || localStorage.getItem('userRegNo') || userName.toUpperCase(),
-        email: studentUser?.email || sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || `${userName}@tec.rjt.ac.lk`,
-        faculty: studentUser?.department || sessionStorage.getItem('userFaculty') || localStorage.getItem('userFaculty') || 'Technology',
-        department: studentUser?.department || sessionStorage.getItem('userFaculty') || localStorage.getItem('userFaculty') || 'Technology',
-        age: studentUser?.age || '',
-        height: studentUser?.height || '',
-        weight: studentUser?.weight || '',
-        fitnessLevel: studentUser?.fitnessLevel || '',
-        injuryHistory: studentUser?.injuryHistory || '',
-        trainingGoal: studentUser?.trainingGoal || '',
-        bio: studentUser?.bio || 'Member of Rajarata University Sports & Gym Club.',
-        profilePhoto: savedPhoto,
-        avatarUrl: savedPhoto
-    };
-
-    const initialData = { ...fallbackProfile, ...(localData || {}) };
-    updateProfileDisplay(initialData);
-
-    // Fetch latest profile from database asynchronously (via multi-host API)
+    // 2. Fetch fresh real-time student profile directly from MongoDB database
     try {
         const resData = await fetchStudentAPI('/api/student/profile');
         if (resData && resData.success && resData.user) {
-            const dbUser = resData.user;
-            const photo = dbUser.profilePhoto || dbUser.profileImage || dbUser.avatarUrl || savedPhoto;
-            const merged = {
-                ...initialData,
-                ...dbUser,
-                user_id: dbUser.user_id || dbUser.userId || initialData.user_id,
-                regNo: dbUser.regNo || initialData.regNo,
-                email: dbUser.email || initialData.email,
-                faculty: dbUser.faculty || dbUser.department || initialData.faculty,
-                department: dbUser.department || dbUser.faculty || initialData.department,
-                bio: dbUser.bio || initialData.bio,
-                profilePhoto: photo,
-                avatarUrl: photo
-            };
-            localStorage.setItem(profileKey, JSON.stringify(merged));
-            if (merged.regNo && merged.regNo !== userName) {
-                localStorage.setItem('unixsport_profile_' + merged.regNo.replace(/\//g, '_'), JSON.stringify(merged));
-            }
-            if (merged.user_id) localStorage.setItem('user_id', merged.user_id);
-            if (merged.regNo) localStorage.setItem('userRegNo', merged.regNo);
-            if (merged.email) localStorage.setItem('userEmail', merged.email);
-            if (merged.faculty) localStorage.setItem('userFaculty', merged.faculty);
-            if (photo) {
-                localStorage.setItem(photoKey, photo);
-                if (merged.regNo) {
-                    localStorage.setItem('unixsport_profile_photo_' + merged.regNo.replace(/\//g, '_'), photo);
-                }
-            }
-            updateProfileDisplay(merged);
+            const liveUser = resData.user;
+            sessionStorage.setItem('unixsport_user_student', JSON.stringify(liveUser));
+            sessionStorage.setItem('userRealName', liveUser.name || '');
+            sessionStorage.setItem('userName', liveUser.regNo || liveUser.name || '');
+            sessionStorage.setItem('userRegNo', liveUser.regNo || '');
+            sessionStorage.setItem('userEmail', liveUser.email || '');
+            updateProfileDisplay(liveUser);
         }
     } catch (err) {
-        // Fallback already rendered
+        console.warn('Realtime MongoDB profile load note:', err.message);
     }
 }
 
-function loadProfileIntoForm() {
-    const userName = localStorage.getItem('userName') || 'student';
-    const profileKey = 'unixsport_profile_' + userName.replace(/\//g, '_');
+async function loadProfileIntoForm() {
     const form = document.getElementById('editProfileForm');
     if (!form) return;
 
-    let data = {};
-    const saved = localStorage.getItem(profileKey);
-    if (saved) {
-        try { data = JSON.parse(saved); } catch(e) {}
-    } else {
-        data = {
-            user_id: localStorage.getItem('user_id') || localStorage.getItem('userId') || '',
-            name: localStorage.getItem('userRealName') || userName,
-            regNo: localStorage.getItem('userRegNo') || userName.toUpperCase(),
-            email: localStorage.getItem('userEmail') || '',
-            faculty: localStorage.getItem('userFaculty') || localStorage.getItem('userDepartment') || 'Technology',
-            age: '',
-            height: '',
-            weight: '',
-            fitnessLevel: '',
-            injuryHistory: '',
-            trainingGoal: ''
-        };
+    let data = null;
+
+    // 1. Fetch fresh real-time profile from MongoDB
+    try {
+        const resData = await fetchStudentAPI('/api/student/profile');
+        if (resData && resData.success && resData.user) {
+            data = resData.user;
+            sessionStorage.setItem('unixsport_user_student', JSON.stringify(data));
+        }
+    } catch(e) {
+        console.warn('Load edit profile API note:', e.message);
+    }
+
+    // 2. Fallback to active session
+    if (!data) {
+        try {
+            data = JSON.parse(sessionStorage.getItem('unixsport_user_student') || '{}');
+        } catch(e) { data = {}; }
     }
 
     const set = (name, val) => {
@@ -1241,6 +1126,12 @@ function validateRequestSchedule(form) {
 
     if (!coach.value) {
         showError(coach, 'Please select a coach');
+        valid = false;
+    }
+
+    const consent = form.querySelector('[name="healthConsent"]');
+    if (consent && !consent.checked) {
+        showToast('Please accept the Health & Privacy Consent agreement to continue.', 'error');
         valid = false;
     }
 
@@ -1969,14 +1860,18 @@ function initDeleteScheduleModal() {
 }
 
 // ========== Dynamic Equipment Loader ==========
-function loadEquipmentAvailability() {
+async function loadEquipmentAvailability() {
     const grid = document.getElementById('equipmentGrid');
     const select = document.getElementById('equipmentSelect');
 
     let equipmentList = [];
-    const saved = localStorage.getItem('unixsport_equipment');
-    if (saved) {
-        try { equipmentList = JSON.parse(saved); } catch(e) {}
+    try {
+        const res = await fetchStudentAPI('/api/student/equipment');
+        if (res && res.success && Array.isArray(res.equipment)) {
+            equipmentList = res.equipment;
+        }
+    } catch (e) {
+        console.warn('Live equipment fetch note:', e.message);
     }
 
     // Populate dropdown options
@@ -2135,49 +2030,24 @@ async function updateStudentDashboardStats() {
         console.error('Failed to load student dashboard stats from API:', err);
     }
 
-    const userName = localStorage.getItem('userName') || 'student';
-    let userReg = '';
+    // If live API stats are temporarily unavailable, try fetching from live student schedules
     try {
-        const p = JSON.parse(localStorage.getItem('unixsport_profile_' + userName.replace(/\//g, '_')) || '{}');
-        userReg = (p.regNo || '').toUpperCase();
+        const schedRes = await fetchStudentAPI('/api/student/schedules');
+        if (schedRes && schedRes.success && Array.isArray(schedRes.requests)) {
+            const reqs = schedRes.requests;
+            const approved = reqs.filter(r => r.status === 'approved').length;
+            const hasPlan = reqs.some(r => r.status === 'approved' && r.assignedExercises && r.assignedExercises.length > 0);
+            const pending = reqs.filter(r => r.status === 'pending').length;
+
+            const elSessions = document.getElementById('dashUpcomingSessions');
+            const elPlan = document.getElementById('dashWorkoutPlan');
+            const elPendingEq = document.getElementById('dashPendingEquipment');
+
+            if (elSessions) elSessions.textContent = approved;
+            if (elPlan) elPlan.textContent = hasPlan ? 'Yes' : 'No';
+            if (elPendingEq) elPendingEq.textContent = pending;
+        }
     } catch(e) {}
-
-    let requests = [];
-    try {
-        requests = JSON.parse(localStorage.getItem('unixsport_student_requests') || '[]');
-    } catch(e) {}
-
-    const myRequests = requests.filter(r => {
-        if (r.studentUserKey && r.studentUserKey === userName) return true;
-        if (userReg && r.studentId && r.studentId.toUpperCase() === userReg) return true;
-        return false;
-    });
-
-    const upcomingSessions = myRequests.filter(r => r.status === 'approved').length;
-    const hasActivePlan = myRequests.some(r => r.status === 'approved' && r.assignedExercises && r.assignedExercises.length > 0);
-
-    let borrowLogs = [];
-    try {
-        borrowLogs = JSON.parse(localStorage.getItem('unixsport_borrow_history') || '[]');
-    } catch(e) {}
-
-    const myBorrow = borrowLogs.filter(b => {
-        if (b.studentId && userReg && b.studentId.toUpperCase() === userReg) return true;
-        if (b.studentName && b.studentName.toLowerCase() === userName.toLowerCase()) return true;
-        return false;
-    });
-
-    const totalBorrowed = myBorrow.filter(b => b.status === 'taken' || b.status === 'borrowed').length;
-
-    const elSessions = document.getElementById('dashUpcomingSessions');
-    const elPlan = document.getElementById('dashWorkoutPlan');
-    const elPendingEq = document.getElementById('dashPendingEquipment');
-    const elTotalBorrowed = document.getElementById('dashTotalBorrowed');
-
-    if (elSessions) elSessions.textContent = upcomingSessions;
-    if (elPlan) elPlan.textContent = hasActivePlan ? 'Yes' : 'No';
-    if (elPendingEq) elPendingEq.textContent = '0';
-    if (elTotalBorrowed) elTotalBorrowed.textContent = totalBorrowed;
 }
 
 window.loadEquipmentAvailability = loadEquipmentAvailability;

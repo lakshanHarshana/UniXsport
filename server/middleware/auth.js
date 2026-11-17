@@ -9,13 +9,8 @@ function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   let token = authHeader && authHeader.split(' ')[1];
 
-  // Also check query parameter or cookie if token not in header
-  if (!token && req.query && req.query.token) {
-    token = req.query.token;
-  }
-
   if (!token) {
-    return res.status(401).json({ success: false, error: 'Access denied. No token provided.' });
+    return res.status(401).json({ success: false, error: 'Access denied. No Authorization Bearer token provided.' });
   }
 
   // Check if token has been revoked / logged out

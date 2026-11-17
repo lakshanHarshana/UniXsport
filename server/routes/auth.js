@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
-const { db, saveDatabase, generateNextUserId } = require('../db');
+const { db, saveDatabase, generateNextUserId, getMongoDb, syncDocToMongo } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 /**
@@ -112,7 +112,6 @@ router.post('/register', async (req, res) => {
       trainingGoal: 'General Fitness',
       bio: 'Member of Rajarata University Sports & Gym Club.',
       passwordHash,
-      password,
       role: 'student',
       rfidTag: cleanRfidTag,
       rfidCode: cleanRfidTag,
@@ -163,8 +162,38 @@ router.post('/login', async (req, res) => {
 
     const target = String(rawIdentifier).toLowerCase().trim();
 
+    // 1. Check MongoDB Atlas live if connected
+    let liveUser = null;
+    const mongo = getMongoDb();
+    if (mongo) {
+      try {
+        const regex = new RegExp('^' + target + String.fromCharCode(36), 'i');
+        const orKey = String.fromCharCode(36) + 'or';
+        const queryObj = {};
+        queryObj[orKey] = [
+          { user_id: regex },
+          { userId: regex },
+          { regNo: regex },
+          { username: regex },
+          { email: regex },
+          { name: regex },
+          { id: regex }
+        ];
+        const doc = await mongo.collection('users').findOne(queryObj);
+        if (doc) {
+          liveUser = Object.assign({}, doc);
+          delete liveUser._id;
+          const idx = (db.users || []).findIndex(u => u.id === liveUser.id || u.user_id === liveUser.user_id);
+          if (idx >= 0) db.users[idx] = liveUser;
+          else db.users.push(liveUser);
+        }
+      } catch (mErr) {
+        console.warn('[Auth Login] Live Mongo check note:', mErr.message);
+      }
+    }
+
     // Match user by user_id, regNo, username, email, name, or id
-    const user = db.users.find(u => {
+    const user = liveUser || db.users.find(u => {
       const uUserId = (u.user_id || u.userId || '').toLowerCase().trim();
       const uReg = (u.regNo || '').toLowerCase().trim();
       const uUser = (u.username || '').toLowerCase().trim();
@@ -205,6 +234,25 @@ router.post('/login', async (req, res) => {
 
     if (!isMatch) {
       return res.status(401).json({ success: false, error: 'Invalid credentials. Please check your password.' });
+    }
+
+    // Verify portal role strictly matches user account role
+    const requestedRole = String(role || '').trim().toLowerCase();
+    const accountRole = String(user.role || '').trim().toLowerCase();
+
+    if (requestedRole && requestedRole !== 'any' && requestedRole !== accountRole) {
+      const roleTitles = {
+        student: 'Student',
+        coach: 'Gym Coach',
+        storekeeper: 'Storekeeper',
+        admin: 'Administrator'
+      };
+      const portalTitle = roleTitles[requestedRole] || requestedRole;
+      const accountTitle = roleTitles[accountRole] || accountRole;
+      return res.status(403).json({
+        success: false,
+        error: 'Access Denied: This sign-in portal is reserved for ' + portalTitle + 's only. Your account is registered as ' + accountTitle + '. Please use the ' + accountTitle + ' Portal.'
+      });
     }
 
     // Generate JWT payload & token
@@ -295,8 +343,23 @@ router.post('/logout', authenticateToken, (req, res) => {
  * @route   GET /api/auth/me
  * @desc    Fetch current authenticated user profile
  */
-router.get('/me', authenticateToken, (req, res) => {
-  const user = db.users.find(u => u.id === req.user.id);
+router.get('/me', authenticateToken, async (req, res) => {
+  let user = null;
+  const mongo = getMongoDb();
+  if (mongo) {
+    try {
+      const doc = await mongo.collection('users').findOne({ id: req.user.id });
+      if (doc) {
+        user = Object.assign({}, doc);
+        delete user._id;
+        const idx = (db.users || []).findIndex(u => u.id === user.id);
+        if (idx >= 0) db.users[idx] = user;
+      }
+    } catch (e) {}
+  }
+  if (!user) {
+    user = db.users.find(u => u.id === req.user.id);
+  }
   if (!user) {
     return res.status(404).json({ success: false, error: 'User profile not found.' });
   }

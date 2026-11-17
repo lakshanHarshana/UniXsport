@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const config = require('../config');
 const { db, saveDatabase } = require('../db');
 
 // List of connected SSE client connections
@@ -51,6 +53,37 @@ function handleRfidScan(req, res) {
 
     if (!rfid_tag) {
       return res.status(400).json({ authorized: false, message: 'RFID tag missing (provide rfid_tag parameter)' });
+    }
+
+    // Hardware & Gateway Device Authentication
+    const clientKey = req.headers['x-device-api-key'] || req.headers['x-api-key'] || (req.query && req.query.apiKey) || (req.body && req.body.apiKey);
+    const expectedKey = config.RFID_DEVICE_API_KEY || 'unixsport_rfid_device_key_2026';
+
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    let isAuthorized = false;
+
+    if (clientKey && clientKey === expectedKey) {
+      isAuthorized = true;
+    } else if (token) {
+      try {
+        jwt.verify(token, config.JWT_SECRET);
+        isAuthorized = true;
+      } catch (e) {}
+    }
+
+    if (!isAuthorized) {
+      return res.status(401).json({
+        success: false,
+        authorized: false,
+        error: 'Unauthorized: Missing or invalid RFID hardware device key (X-Device-API-Key).'
+      });
+    }
+
+    // Ethical Data Retention: Prune scans older than 90 days to prevent indefinite surveillance storage
+    const ninetyDaysAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+    if (db.rfidScans && db.rfidScans.length > 500) {
+      db.rfidScans = db.rfidScans.filter(s => new Date(s.timestamp || s.createdAt || 0).getTime() > ninetyDaysAgo);
     }
 
     const cleanTag = String(rfid_tag).trim().toUpperCase();

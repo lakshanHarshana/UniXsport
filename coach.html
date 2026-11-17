@@ -18,14 +18,18 @@
             function checkAuth() {
                 const tabToken = sessionStorage.getItem('unixsport_token_coach') || sessionStorage.getItem('unixsport_jwt_token') || sessionStorage.getItem('token');
                 const tabRole = (sessionStorage.getItem('userRole') || '').toLowerCase();
+                if (tabRole && tabRole !== 'coach') {
+                    window.location.replace('login.html?role=coach');
+                    return;
+                }
                 const roleToken = localStorage.getItem('unixsport_token_coach');
                 const roleUser = localStorage.getItem('unixsport_user_coach');
                 const legacyRole = (localStorage.getItem('userRole') || '').toLowerCase();
                 const legacyToken = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
 
                 const isValidCoach = (tabToken && tabRole === 'coach') ||
-                                     roleToken ||
-                                     roleUser ||
+                                     (roleToken && (legacyRole === 'coach' || !legacyRole)) ||
+                                     (roleUser && (legacyRole === 'coach' || !legacyRole)) ||
                                      (legacyRole === 'coach' && legacyToken);
 
                 if (!isValidCoach) {
@@ -666,6 +670,7 @@
         All data views (dashboard, pending, history, calendar) are filtered by coach.
     -->
     <script src="js/api.js?v=4.0"></script>
+    <script src="js/sync-engine.js"></script>
     <script src="js/coach.js?v=4.0"></script>
     <script src="js/colombo-clock.js?v=4.0"></script>
 </body>

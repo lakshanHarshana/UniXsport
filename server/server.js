@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const dns = require('dns');
+const jwt = require('jsonwebtoken');
 
 // Ensure reliable SRV resolution for MongoDB Atlas across local ISP DNS
 try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch(e) {}
@@ -23,6 +24,25 @@ app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
 // Serve static frontend assets & uploaded files
 app.use(express.static(path.join(__dirname, '../')));
+
+// Protected schedule & medical file access: PDF schedules require active authentication
+app.get('/uploads/:filename', (req, res, next) => {
+  const filename = req.params.filename;
+  if (filename.toLowerCase().endsWith('.pdf') || filename.toLowerCase().startsWith('schedule-')) {
+    const authHeader = req.headers['authorization'];
+    const token = (authHeader && authHeader.split(' ')[1]) || (req.query && req.query.token);
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'Authentication required to view confidential student schedule files.' });
+    }
+    try {
+      jwt.verify(token, config.JWT_SECRET);
+      return res.sendFile(path.join(config.UPLOAD_DIR, filename));
+    } catch (e) {
+      return res.status(403).json({ success: false, error: 'Invalid or expired session token.' });
+    }
+  }
+  next();
+});
 app.use('/uploads', express.static(config.UPLOAD_DIR));
 
 // Default root redirects to home.html
@@ -39,6 +59,7 @@ const storekeeperRoutes = require('./routes/storekeeper');
 const adminRoutes = require('./routes/admin');
 const noticesRoutes = require('./routes/notices');
 const reviewsRoutes = require('./routes/reviews');
+const syncRoutes = require('./routes/sync');
 
 // Mount API Routes
 app.use('/api/auth', authRoutes);
@@ -49,6 +70,7 @@ app.use('/api/storekeeper', storekeeperRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notices', noticesRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/sync', syncRoutes);
 
 const { db, saveDatabase } = require('./db');
 

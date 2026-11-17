@@ -45,12 +45,16 @@ document.addEventListener('DOMContentLoaded', () => {
             shakeCard();
             return;
         }
+        // Validate Registration Number
         const validPrefixes = ['ITT', 'BST', 'ENT', 'SSH', 'MGT', 'ASP'];
 
-        const hasValidPrefix = validPrefixes.some(prefix => regNo.startsWith(prefix));
-        
-        if (!regNo || regNo.length < 3) {
-            showToast('Please enter a valid Registration Number.', 'error');
+        const hasValidPrefix = validPrefixes.some(prefix => regNo.toUpperCase().startsWith(prefix));
+
+        if (!regNo || regNo.length < 5 || !hasValidPrefix) {
+            showToast('Please enter a valid Registration Number (ITT, BST, ENT, SSH, MGT, ASP).', 'error');
+            shakeCard();
+            return;
+        }
             shakeCard();
             return;
         }

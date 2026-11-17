@@ -458,7 +458,7 @@ async function performLogout() {
         localStorage.removeItem('userEmail');
         localStorage.removeItem('userProfile');
         sessionStorage.clear();
-        window.location.replace('login.html?role=admin');
+        window.location.replace('home.html');
     }
 }
 

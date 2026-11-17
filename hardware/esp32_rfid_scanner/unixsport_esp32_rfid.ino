@@ -63,6 +63,7 @@ const char* SERVER_URL = "https://unixsport-api.onrender.com/api/rfid/scan";
 // const char* SERVER_URL = "http://10.30.1.1:5000/api/rfid/scan";
 
 const char* DEVICE_ID     = "STORE_GATE_01";         // Scanner identifier
+const char* DEVICE_API_KEY = "unixsport_rfid_device_key_2026"; // Hardware authentication key
 // ============================================================ //
 
 // Pin Definitions (Exact Custom Setup)
@@ -293,12 +294,14 @@ void sendScanToServer(String cardUID) {
     http.begin(secureClient, SERVER_URL);
     http.setTimeout(12000);
     http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-API-Key", DEVICE_API_KEY);
     httpResponseCode = http.POST(jsonPayload);
   } else {
     WiFiClient plainClient;
     http.begin(plainClient, SERVER_URL);
     http.setTimeout(8000);
     http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-API-Key", DEVICE_API_KEY);
     httpResponseCode = http.POST(jsonPayload);
   }
 

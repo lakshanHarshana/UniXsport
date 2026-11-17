@@ -210,7 +210,6 @@ router.post('/create-user', async (req, res) => {
       phone: (phone || '').trim(),
       gender: (gender || '').trim(),
       passwordHash,
-      password,
       role: normalizedRole,
       rfidTag: cleanRfid,
       rfidCode: cleanRfid,
@@ -226,7 +225,11 @@ router.post('/create-user', async (req, res) => {
     db.users.push(newUser);
     saveDatabase();
 
-    res.status(201).json({ success: true, message: 'User created successfully.', user: newUser });
+    const sanitizedUser = { ...newUser };
+    delete sanitizedUser.password;
+    delete sanitizedUser.passwordHash;
+
+    res.status(201).json({ success: true, message: 'User created successfully.', user: sanitizedUser });
   } catch (err) {
     console.error('Error creating user:', err);
     res.status(500).json({ success: false, error: 'Failed to create user: ' + err.message });
@@ -324,7 +327,7 @@ router.patch('/user/:id', async (req, res) => {
     if (status) user.status = status;
     if (password && password.length >= 6) {
       user.passwordHash = await bcrypt.hash(password, 10);
-      user.password = password;
+      delete user.password;
     }
 
     saveDatabase();

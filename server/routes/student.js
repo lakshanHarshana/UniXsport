@@ -3,7 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const config = require('../config');
-const { db, saveDatabase } = require('../db');
+const { db, saveDatabase, getMongoDb, syncDocToMongo } = require('../db');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 /**
@@ -320,6 +320,8 @@ router.post('/schedule-request', (req, res) => {
     timeSlot: targetTime,
     preferredTime: targetTime,
     notes: (notes || '').trim(),
+    healthConsent: true,
+    consentTimestamp: new Date().toISOString(),
     status: 'pending',
     coachNotes: '',
     coachComment: '',
@@ -525,15 +527,73 @@ router.post('/equipment-request', (req, res) => {
 });
 
 /**
- * @route   GET /api/student/profile
- * @desc    Fetch full student profile from database
+ * @route   GET /api/student/equipment
+ * @desc    Fetch real-time equipment availability from database
  */
-router.get('/profile', (req, res) => {
+router.get('/equipment', async (req, res) => {
+  let equipment = db.equipment || [];
+  const mongo = getMongoDb();
+  if (mongo) {
+    try {
+      const docs = await mongo.collection('equipment').find({}).toArray();
+      if (docs && docs.length > 0) {
+        equipment = docs.map(d => {
+          const c = Object.assign({}, d);
+          delete c._id;
+          return c;
+        });
+        db.equipment = equipment;
+      }
+    } catch (e) {
+      console.warn('[Student Equipment] Live Mongo read error:', e.message);
+    }
+  }
+  res.json({ success: true, equipment });
+});
+
+/**
+ * @route   GET /api/student/profile
+ * @desc    Fetch full student profile in real-time from database
+ */
+router.get('/profile', async (req, res) => {
   const myIds = getStudentIdentifiers(req.user);
-  const user = (db.users || []).find(u => {
-    const uIds = [u.id, u.user_id, u.userId, u.regNo, u.username, u.email].filter(Boolean).map(s => String(s).toLowerCase().trim());
-    return myIds.some(id => uIds.includes(id));
-  });
+  let user = null;
+  const mongo = getMongoDb();
+  if (mongo) {
+    try {
+      for (const id of myIds) {
+        const regex = new RegExp('^' + id + String.fromCharCode(36), 'i');
+        const orKey = String.fromCharCode(36) + 'or';
+        const queryObj = {};
+        queryObj[orKey] = [
+          { id: id },
+          { user_id: regex },
+          { userId: regex },
+          { regNo: regex },
+          { username: regex },
+          { email: regex }
+        ];
+        const doc = await mongo.collection('users').findOne(queryObj);
+        if (doc) {
+          user = Object.assign({}, doc);
+          delete user._id;
+          const idx = (db.users || []).findIndex(u => u.id === user.id || u.user_id === user.user_id);
+          if (idx >= 0) db.users[idx] = user;
+          else db.users.push(user);
+          break;
+        }
+      }
+    } catch (mErr) {
+      console.warn('[Student Profile] Live Mongo fetch note:', mErr.message);
+    }
+  }
+
+  if (!user) {
+    user = (db.users || []).find(u => {
+      const uIds = [u.id, u.user_id, u.userId, u.regNo, u.username, u.email].filter(Boolean).map(s => String(s).toLowerCase().trim());
+      return myIds.some(id => uIds.includes(id));
+    });
+  }
 
   if (!user) {
     return res.status(404).json({ success: false, error: 'User profile not found in database.' });
@@ -681,6 +741,13 @@ router.post('/update-profile', async (req, res) => {
 
   user.updatedAt = new Date().toISOString();
   saveDatabase();
+
+  // Execute direct atomic write to MongoDB Atlas immediately
+  try {
+    await syncDocToMongo('users', { id: user.id }, user);
+  } catch (syncErr) {
+    console.warn('[Update Profile] Immediate MongoDB sync note:', syncErr.message);
+  }
 
   res.json({
     success: true,

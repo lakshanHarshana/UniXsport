@@ -1,29 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { db, saveDatabase } = require('../db');
+const { db, saveDatabase, getMongoDb } = require('../db');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
-// Permissive token checking: verify token if provided, default to storekeeper session context
-router.use((req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  let token = authHeader && authHeader.split(' ')[1];
-  if (!token && req.query && req.query.token) {
-    token = req.query.token;
-  }
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, config.JWT_SECRET);
-      req.user = decoded;
-    } catch (e) {
-      // Allow seamless storekeeper terminal access
-    }
-  }
-  if (!req.user) {
-    req.user = { id: 'usr_storekeeper', name: 'amal', role: 'storekeeper', username: 'STORE9616' };
-  }
-  next();
-});
+// All storekeeper routes require valid Storekeeper or Admin authentication
+router.use(authenticateToken);
+router.use(authorizeRoles('storekeeper', 'admin'));
 
 /**
  * @route   GET /api/storekeeper/dashboard
@@ -228,7 +212,7 @@ router.post('/identify-student', (req, res) => {
   }
 });
 
-function handleIssueItem(req, res) {
+async function handleIssueItem(req, res) {
   const { studentRegNo, studentId, userId, equipmentId, quantity, qty } = req.body;
   const lookup = (userId || studentId || studentRegNo || '').trim();
 
@@ -271,10 +255,35 @@ function handleIssueItem(req, res) {
     return res.status(400).json({ success: false, error: `Insufficient stock. Only ${currentAvailable} available.` });
   }
 
-  // Update Stock Count
-  item.availableQty = currentAvailable - issueQty;
-  item.available = item.availableQty;
-  item.borrowedQty = (item.borrowedQty || 0) + issueQty;
+  // Atomic Stock Deduction Lock
+  const mongo = typeof getMongoDb === 'function' ? getMongoDb() : null;
+  if (mongo) {
+    try {
+      const result = await mongo.collection('equipment').findOneAndUpdate(
+        { id: item.id, availableQty: { $gte: issueQty } },
+        {
+          $inc: { availableQty: -issueQty, available: -issueQty, borrowedQty: issueQty, borrowed: issueQty },
+          $set: { updatedAt: new Date().toISOString() }
+        },
+        { returnDocument: 'after' }
+      );
+      if (!result || !result.value) {
+        return res.status(409).json({ success: false, error: 'Stock reservation conflict: requested item was already borrowed by another session.' });
+      }
+      Object.assign(item, result.value);
+    } catch (e) {
+      item.availableQty = Math.max(0, currentAvailable - issueQty);
+      item.available = item.availableQty;
+      item.borrowedQty = (item.borrowedQty || 0) + issueQty;
+      item.borrowed = item.borrowedQty;
+    }
+  } else {
+    item.availableQty = currentAvailable - issueQty;
+    item.available = item.availableQty;
+    item.borrowedQty = (item.borrowedQty || 0) + issueQty;
+    item.borrowed = item.borrowedQty;
+  }
+
   if (item.availableQty === 0) item.status = 'borrowed';
 
   const newLog = {
@@ -300,6 +309,14 @@ function handleIssueItem(req, res) {
   db.borrowLogs.unshift(newLog);
   saveDatabase();
 
+  if (mongo) {
+    try {
+      const cleanLog = { ...newLog };
+      delete cleanLog._id;
+      await mongo.collection('borrowLogs').insertOne(cleanLog);
+    } catch (e) {}
+  }
+
   res.json({
     success: true,
     message: `Issued ${issueQty}x ${item.name} to ${student.name} (${student.user_id || student.regNo}).`,
@@ -314,7 +331,7 @@ router.post('/issue-gear', handleIssueItem);
  * @route   POST /api/storekeeper/return-item
  * @desc    Return borrowed equipment back to stock (supports full & partial returns)
  */
-router.post('/return-item', (req, res) => {
+router.post('/return-item', async (req, res) => {
   try {
     const { logId, equipmentId, studentId, quantity } = req.body;
 
@@ -391,6 +408,20 @@ router.post('/return-item', (req, res) => {
     }
 
     saveDatabase();
+
+    const mongo = typeof getMongoDb === 'function' ? getMongoDb() : null;
+    if (mongo) {
+      try {
+        if (item) {
+          const cleanItem = { ...item };
+          delete cleanItem._id;
+          await mongo.collection('equipment').replaceOne({ id: item.id }, cleanItem, { upsert: true });
+        }
+        const cleanLog = { ...log };
+        delete cleanLog._id;
+        await mongo.collection('borrowLogs').replaceOne({ id: log.id }, cleanLog, { upsert: true });
+      } catch (e) {}
+    }
 
     res.json({
       success: true,

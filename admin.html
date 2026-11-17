@@ -302,14 +302,18 @@
             function checkAuth() {
                 const tabToken = sessionStorage.getItem('unixsport_token_admin') || sessionStorage.getItem('unixsport_jwt_token') || sessionStorage.getItem('token');
                 const tabRole = (sessionStorage.getItem('userRole') || '').toLowerCase();
+                if (tabRole && tabRole !== 'admin') {
+                    window.location.replace('login.html?role=admin');
+                    return;
+                }
                 const roleToken = localStorage.getItem('unixsport_token_admin');
                 const roleUser = localStorage.getItem('unixsport_user_admin');
                 const legacyRole = (localStorage.getItem('userRole') || '').toLowerCase();
                 const legacyToken = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
 
                 const isValidAdmin = (tabToken && tabRole === 'admin') ||
-                                     roleToken ||
-                                     roleUser ||
+                                     (roleToken && (legacyRole === 'admin' || !legacyRole)) ||
+                                     (roleUser && (legacyRole === 'admin' || !legacyRole)) ||
                                      (legacyRole === 'admin' && legacyToken);
 
                 if (!isValidAdmin) {
@@ -1054,6 +1058,7 @@
     </div>
 
     <script src="js/api.js?v=2.0.2"></script>
+    <script src="js/sync-engine.js"></script>
     <script src="js/admin.js?v=2.0.2"></script>
     <script src="js/colombo-clock.js?v=2.0.2"></script>
 </body>
