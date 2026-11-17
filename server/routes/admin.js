@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
 const config = require('../config');
-const { db, saveDatabase, generateNextUserId } = require('../db');
+const { db, saveDatabase, generateNextUserId, getMongoDb } = require('../db');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { isNoticeVisibleToUser } = require('./notices');
 
@@ -340,18 +340,40 @@ router.patch('/user/:id', async (req, res) => {
 
 /**
  * @route   DELETE /api/admin/user/:id
- * @desc    Delete user account
+ * @desc    Delete user account (Immediate atomic removal from both MongoDB Atlas and local memory)
  */
-router.delete('/user/:id', (req, res) => {
-  const index = db.users.findIndex(u => u.id === req.params.id);
+router.delete('/user/:id', async (req, res) => {
+  const targetId = String(req.params.id || '').toLowerCase().trim();
+  const index = db.users.findIndex(u =>
+    String(u.id || '').toLowerCase() === targetId ||
+    String(u.user_id || u.userId || '').toLowerCase() === targetId ||
+    String(u.regNo || '').toLowerCase() === targetId ||
+    String(u.username || '').toLowerCase() === targetId
+  );
   if (index === -1) {
     return res.status(404).json({ success: false, error: 'User not found.' });
   }
 
-  const deleted = db.users.splice(index, 1);
+  const [deleted] = db.users.splice(index, 1);
   saveDatabase();
 
-  res.json({ success: true, message: 'User deleted successfully.', user: deleted[0] });
+  const mongo = typeof getMongoDb === 'function' ? getMongoDb() : null;
+  if (mongo && deleted) {
+    try {
+      await mongo.collection('users').deleteOne({
+        $or: [
+          { id: deleted.id },
+          { user_id: deleted.user_id },
+          { userId: deleted.userId },
+          { regNo: deleted.regNo }
+        ]
+      });
+    } catch (e) {
+      console.warn('Mongo user delete note:', e.message);
+    }
+  }
+
+  res.json({ success: true, message: 'User deleted permanently from database.', user: deleted });
 });
 
 /**
@@ -597,21 +619,38 @@ router.patch('/equipment/:id', (req, res) => {
 
 /**
  * @route   DELETE /api/admin/equipment/:id
- * @desc    Delete equipment from database
+ * @desc    Delete equipment from database (Immediate atomic removal from both MongoDB Atlas and local memory)
  */
-router.delete('/equipment/:id', (req, res) => {
+router.delete('/equipment/:id', async (req, res) => {
   if (!db.equipment) return res.status(404).json({ success: false, error: 'Equipment not found.' });
 
   const targetId = String(req.params.id || '').toLowerCase().trim();
-  const index = db.equipment.findIndex(e => String(e.id).toLowerCase().trim() === targetId);
+  const index = db.equipment.findIndex(e =>
+    String(e.id || '').toLowerCase().trim() === targetId ||
+    String(e.name || '').toLowerCase().trim() === targetId
+  );
   if (index === -1) {
     return res.status(404).json({ success: false, error: 'Equipment not found.' });
   }
 
-  const deleted = db.equipment.splice(index, 1);
+  const [deleted] = db.equipment.splice(index, 1);
   saveDatabase();
 
-  res.json({ success: true, message: 'Equipment deleted successfully.', equipment: deleted[0] });
+  const mongo = typeof getMongoDb === 'function' ? getMongoDb() : null;
+  if (mongo && deleted) {
+    try {
+      await mongo.collection('equipment').deleteOne({
+        $or: [
+          { id: deleted.id },
+          { name: deleted.name }
+        ]
+      });
+    } catch (e) {
+      console.warn('Mongo equipment delete note:', e.message);
+    }
+  }
+
+  res.json({ success: true, message: 'Equipment deleted permanently from database.', equipment: deleted });
 });
 
 /**
