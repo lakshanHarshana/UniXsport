@@ -119,6 +119,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.setItem('userId', apiRes.user.user_id || apiRes.user.userId || '');
                 sessionStorage.setItem(`unixsport_user_${normalizedRole}`, JSON.stringify(apiRes.user));
 
+                const userAvatar = apiRes.user.profilePhoto || apiRes.user.profileImage || apiRes.user.avatarUrl || '';
+                if (userAvatar) {
+                    sessionStorage.setItem('userAvatar', userAvatar);
+                    localStorage.setItem('userAvatar', userAvatar);
+                    sessionStorage.setItem(`userAvatar_${normalizedRole}`, userAvatar);
+                    localStorage.setItem(`userAvatar_${normalizedRole}`, userAvatar);
+                } else {
+                    sessionStorage.removeItem('userAvatar');
+                    localStorage.removeItem('userAvatar');
+                }
+
                 // 2. Role-Scoped LocalStorage (Persists for that specific role/portal)
                 if (apiRes.token) {
                     localStorage.setItem(`unixsport_token_${normalizedRole}`, apiRes.token);

@@ -355,7 +355,11 @@
             <button class="icon-btn active" id="darkModeToggle" aria-label="Toggle dark mode" title="Dark Mode">
                 <i class="fas fa-moon"></i>
             </button>
-            <div class="admin-info">
+            <div class="admin-info" id="adminInfoWrap" data-page="profile" style="cursor: pointer;" title="View Admin Profile">
+                <div class="admin-avatar-mini" id="navAdminAvatarWrap">
+                    <img id="navAdminAvatar" src="" alt="Admin" style="display: none;">
+                    <i class="fas fa-user-shield" id="navAdminPlaceholder"></i>
+                </div>
                 <span id="adminName">Admin</span>
             </div>
             <div class="notification-dropdown">

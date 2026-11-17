@@ -91,12 +91,45 @@ h1, h2, h3, h4, h5 {
 }
 
 .admin-info {
-    padding: 6px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
     background: var(--gray-100);
     border-radius: var(--radius);
     font-weight: 600;
     color: var(--gray-700);
     font-size: 0.9rem;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.admin-info:hover {
+    background: var(--gray-200);
+}
+
+.admin-avatar-mini {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--gray-200);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.admin-avatar-mini img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.admin-avatar-mini i {
+    font-size: 0.82rem;
+    color: var(--blue);
 }
 
 .icon-btn {

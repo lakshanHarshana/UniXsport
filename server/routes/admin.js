@@ -811,22 +811,22 @@ router.post('/profile-photo', (req, res) => {
       }
     }
 
-    let savedImageUrl = '';
+    // Store data URL directly for universal cross-origin/cross-device compatibility (Firebase Hosting + Render backend)
+    let savedImageUrl = rawImage;
+
     const base64Match = rawImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
-
     if (base64Match) {
-      const rawExt = base64Match[1].toLowerCase();
-      const ext = rawExt === 'jpeg' ? 'jpg' : (rawExt === 'svg+xml' ? 'svg' : rawExt);
-      const buffer = Buffer.from(base64Match[2], 'base64');
-      const filename = `admin_${adminUser.user_id || adminUser.id || 'admin'}_${Date.now()}.${ext}`;
-      const filePath = path.join(avatarsDir, filename);
+      try {
+        const rawExt = base64Match[1].toLowerCase();
+        const ext = rawExt === 'jpeg' ? 'jpg' : (rawExt === 'svg+xml' ? 'svg' : rawExt);
+        const buffer = Buffer.from(base64Match[2], 'base64');
+        const filename = `admin_${adminUser.user_id || adminUser.id || 'admin'}_${Date.now()}.${ext}`;
+        const filePath = path.join(avatarsDir, filename);
 
-      fs.writeFileSync(filePath, buffer);
-      savedImageUrl = `/uploads/avatars/${filename}`;
-    } else if (rawImage.startsWith('http://') || rawImage.startsWith('https://') || rawImage.startsWith('/uploads/')) {
-      savedImageUrl = rawImage;
-    } else {
-      savedImageUrl = rawImage;
+        fs.writeFileSync(filePath, buffer);
+      } catch (fileErr) {
+        console.warn('[Storage] File write warning:', fileErr.message);
+      }
     }
 
     // Update database record
@@ -841,12 +841,16 @@ router.post('/profile-photo', (req, res) => {
       success: true,
       message: 'Profile photo updated and saved to database successfully.',
       profileImage: savedImageUrl,
+      profilePhoto: savedImageUrl,
+      avatarUrl: savedImageUrl,
       user: {
         id: adminUser.id,
         user_id: adminUser.user_id || adminUser.userId || '',
         name: adminUser.name,
         email: adminUser.email,
-        profileImage: savedImageUrl
+        profileImage: savedImageUrl,
+        profilePhoto: savedImageUrl,
+        avatarUrl: savedImageUrl
       }
     });
   } catch (err) {
@@ -912,7 +916,7 @@ router.delete('/profile-photo', (req, res) => {
  */
 router.put('/profile', (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, profilePhoto, profileImage, avatarUrl } = req.body;
     if (!name || !email) {
       return res.status(400).json({ success: false, error: 'Name and email are required.' });
     }
@@ -931,6 +935,12 @@ router.put('/profile', (req, res) => {
 
     adminUser.name = name.trim();
     adminUser.email = email.trim().toLowerCase();
+    const photo = profilePhoto || profileImage || avatarUrl;
+    if (photo !== undefined) {
+      adminUser.profilePhoto = photo;
+      adminUser.profileImage = photo;
+      adminUser.avatarUrl = photo;
+    }
     adminUser.updatedAt = new Date().toISOString();
 
     saveDatabase();
@@ -943,7 +953,9 @@ router.put('/profile', (req, res) => {
         user_id: adminUser.user_id || adminUser.userId || '',
         name: adminUser.name,
         email: adminUser.email,
-        profileImage: adminUser.profileImage || adminUser.profilePhoto || ''
+        profileImage: adminUser.profileImage || adminUser.profilePhoto || '',
+        profilePhoto: adminUser.profilePhoto || adminUser.profileImage || '',
+        avatarUrl: adminUser.avatarUrl || adminUser.profileImage || ''
       }
     });
   } catch (err) {

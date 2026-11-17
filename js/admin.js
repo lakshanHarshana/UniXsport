@@ -36,10 +36,16 @@ let currentAdmin = (() => {
     if (raw) {
         try { parsed = JSON.parse(raw); } catch(e) {}
     }
+    const cachedAvatar = parsed?.profileImage || parsed?.profilePhoto || parsed?.avatarUrl || sessionStorage.getItem('userAvatar') || localStorage.getItem('userAvatar') || '';
     return {
         id: parsed?.id || 1,
+        user_id: parsed?.user_id || parsed?.userId || sessionStorage.getItem('user_id') || localStorage.getItem('user_id') || 'US001',
+        userId: parsed?.user_id || parsed?.userId || sessionStorage.getItem('user_id') || localStorage.getItem('user_id') || 'US001',
         name: parsed?.name || sessionStorage.getItem('userRealName') || localStorage.getItem('userRealName') || (sessionStorage.getItem('userName') || localStorage.getItem('userName') ? ((sessionStorage.getItem('userName') || localStorage.getItem('userName')).charAt(0).toUpperCase() + (sessionStorage.getItem('userName') || localStorage.getItem('userName')).slice(1)) : 'Admin User'),
         email: parsed?.email || sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || 'admin@unixsport.edu',
+        role: 'admin',
+        profileImage: cachedAvatar,
+        profilePhoto: cachedAvatar,
         memberSince: 'RUSL Staff'
     };
 })();
@@ -72,18 +78,23 @@ async function loadAdminData() {
                 }));
 
                 if (res.currentAdmin) {
+                    const avatar = res.currentAdmin.profileImage || res.currentAdmin.profilePhoto || res.currentAdmin.avatarUrl || currentAdmin.profileImage || '';
                     currentAdmin = {
                         id: res.currentAdmin.id || currentAdmin.id,
-                        user_id: res.currentAdmin.user_id || 'US001',
-                        userId: res.currentAdmin.user_id || 'US001',
+                        user_id: res.currentAdmin.user_id || res.currentAdmin.userId || currentAdmin.user_id || 'US001',
+                        userId: res.currentAdmin.user_id || res.currentAdmin.userId || currentAdmin.userId || 'US001',
                         name: res.currentAdmin.name || currentAdmin.name,
                         email: res.currentAdmin.email || currentAdmin.email,
                         role: res.currentAdmin.role || 'admin',
-                        profileImage: res.currentAdmin.profileImage || '',
-                        profilePhoto: res.currentAdmin.profilePhoto || res.currentAdmin.profileImage || '',
+                        profileImage: avatar,
+                        profilePhoto: avatar,
                         memberSince: res.currentAdmin.memberSince || currentAdmin.memberSince
                     };
-                    renderAdminProfilePhoto(currentAdmin.profileImage);
+                    if (avatar) {
+                        localStorage.setItem('userAvatar', avatar);
+                        sessionStorage.setItem('userAvatar', avatar);
+                    }
+                    renderAdminProfilePhoto(avatar);
                 }
 
                 // Map database equipment
@@ -142,6 +153,7 @@ async function loadAdminData() {
 // ========== Initialization ==========
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('adminName').textContent = currentAdmin.name;
+    renderAdminProfilePhoto(currentAdmin.profileImage || currentAdmin.profilePhoto || localStorage.getItem('userAvatar') || '');
     initNavigation();
     initSidebar();
     initDarkMode();
@@ -953,18 +965,52 @@ function confirmDeleteEvent(id) {
 }
 
 // ========== Profile ==========
+function resolvePhotoUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    const trimmed = url.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('data:') || trimmed.startsWith('blob:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        return trimmed;
+    }
+    const baseUrl = (typeof window !== 'undefined' && window.API_BASE_URL)
+        ? window.API_BASE_URL
+        : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:5000' : 'https://unixsport-api.onrender.com');
+    return baseUrl.replace(/\/$/, '') + '/' + trimmed.replace(/^\//, '');
+}
+
 function renderAdminProfilePhoto(photoUrl) {
+    const finalUrl = resolvePhotoUrl(photoUrl);
+
+    // Main photo in Admin Profile section
     const img = document.getElementById('profileImg');
     const placeholder = document.querySelector('#profilePhotoDisplay .placeholder-icon');
     const removeBtn = document.getElementById('removePhotoBtn');
 
-    if (photoUrl && photoUrl.trim()) {
+    // Mini avatar in top navbar
+    const navAvatar = document.getElementById('navAdminAvatar');
+    const navPlaceholder = document.getElementById('navAdminPlaceholder');
+
+    if (finalUrl) {
         if (img) {
-            img.src = photoUrl;
+            img.src = finalUrl;
             img.style.display = 'block';
+            img.onerror = () => {
+                img.style.display = 'none';
+                if (placeholder) placeholder.style.removeProperty('display');
+            };
         }
         if (placeholder) placeholder.style.setProperty('display', 'none');
         if (removeBtn) removeBtn.style.display = 'inline-flex';
+
+        if (navAvatar) {
+            navAvatar.src = finalUrl;
+            navAvatar.style.display = 'block';
+            navAvatar.onerror = () => {
+                navAvatar.style.display = 'none';
+                if (navPlaceholder) navPlaceholder.style.removeProperty('display');
+            };
+        }
+        if (navPlaceholder) navPlaceholder.style.setProperty('display', 'none');
     } else {
         if (img) {
             img.src = '';
@@ -972,9 +1018,50 @@ function renderAdminProfilePhoto(photoUrl) {
         }
         if (placeholder) placeholder.style.removeProperty('display');
         if (removeBtn) removeBtn.style.display = 'none';
+
+        if (navAvatar) {
+            navAvatar.src = '';
+            navAvatar.style.display = 'none';
+        }
+        if (navPlaceholder) navPlaceholder.style.removeProperty('display');
     }
 }
 
+function compressProfileImage(file, maxDimension = 512, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > height) {
+                    if (width > maxDimension) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    }
+                } else {
+                    if (height > maxDimension) {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(ev.target.result);
+            img.src = ev.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+let isProfileEventsBound = false;
 function initProfile() {
     const elUserId = document.getElementById('profileUserId');
     if (elUserId) elUserId.textContent = currentAdmin.user_id || currentAdmin.userId || localStorage.getItem('user_id') || 'US001';
@@ -984,47 +1071,63 @@ function initProfile() {
 
     renderAdminProfilePhoto(currentAdmin.profileImage || currentAdmin.profilePhoto || localStorage.getItem('userAvatar') || '');
 
+    if (isProfileEventsBound) return;
+    isProfileEventsBound = true;
+
     document.getElementById('profilePhotoInput')?.addEventListener('change', async e => {
         const file = e.target.files[0];
         if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = async ev => {
-                const dataUrl = ev.target.result;
+            try {
+                showToast('Processing photo...', 'info');
+                const dataUrl = await compressProfileImage(file);
                 renderAdminProfilePhoto(dataUrl);
 
-                try {
-                    showToast('Uploading profile image to database...', 'info');
-                    let res = null;
-                    if (window.UniXsportAPI && typeof window.UniXsportAPI.uploadAdminProfilePhoto === 'function') {
-                        res = await window.UniXsportAPI.uploadAdminProfilePhoto(dataUrl);
-                    } else {
-                        const token = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
-                        const response = await fetch('/api/admin/profile-photo', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                            },
-                            body: JSON.stringify({ image: dataUrl })
-                        });
-                        res = await response.json();
-                    }
-
-                    if (res && res.success) {
-                        currentAdmin.profileImage = res.profileImage || dataUrl;
-                        currentAdmin.profilePhoto = currentAdmin.profileImage;
-                        localStorage.setItem('userAvatar', currentAdmin.profileImage);
-                        renderAdminProfilePhoto(currentAdmin.profileImage);
-                        showToast('Profile photo updated and saved to database successfully!', 'success');
-                    } else {
-                        throw new Error(res?.error || 'Failed to save profile photo');
-                    }
-                } catch (err) {
-                    console.error('Failed to upload profile photo:', err);
-                    showToast(err.message || 'Failed to save photo in database', 'error');
+                showToast('Saving profile photo to database...', 'info');
+                let res = null;
+                if (window.UniXsportAPI && typeof window.UniXsportAPI.uploadAdminProfilePhoto === 'function') {
+                    res = await window.UniXsportAPI.uploadAdminProfilePhoto(dataUrl);
+                } else {
+                    const token = getUniXsportToken();
+                    const response = await fetch(getAdminApiBase() + '/api/admin/profile-photo', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
+                        body: JSON.stringify({ image: dataUrl })
+                    });
+                    res = await response.json();
                 }
-            };
-            reader.readAsDataURL(file);
+
+                if (res && res.success) {
+                    const savedPhoto = res.profileImage || dataUrl;
+                    currentAdmin.profileImage = savedPhoto;
+                    currentAdmin.profilePhoto = savedPhoto;
+                    localStorage.setItem('userAvatar', savedPhoto);
+                    sessionStorage.setItem('userAvatar', savedPhoto);
+                    localStorage.setItem('userAvatar_admin', savedPhoto);
+                    sessionStorage.setItem('userAvatar_admin', savedPhoto);
+
+                    try {
+                        const adminObj = JSON.parse(localStorage.getItem('unixsport_user_admin') || sessionStorage.getItem('unixsport_user_admin') || '{}');
+                        adminObj.profileImage = savedPhoto;
+                        adminObj.profilePhoto = savedPhoto;
+                        adminObj.avatarUrl = savedPhoto;
+                        localStorage.setItem('unixsport_user_admin', JSON.stringify(adminObj));
+                        sessionStorage.setItem('unixsport_user_admin', JSON.stringify(adminObj));
+                    } catch (errCache) {}
+
+                    renderAdminProfilePhoto(savedPhoto);
+                    showToast('Profile photo updated and saved to database successfully!', 'success');
+                } else {
+                    throw new Error(res?.error || 'Failed to save profile photo');
+                }
+            } catch (err) {
+                console.error('Failed to upload profile photo:', err);
+                showToast(err.message || 'Failed to save photo in database', 'error');
+            } finally {
+                e.target.value = '';
+            }
         }
     });
 
@@ -1037,8 +1140,8 @@ function initProfile() {
             if (window.UniXsportAPI && typeof window.UniXsportAPI.deleteAdminProfilePhoto === 'function') {
                 await window.UniXsportAPI.deleteAdminProfilePhoto();
             } else {
-                const token = localStorage.getItem('unixsport_jwt_token') || localStorage.getItem('token');
-                await fetch('/api/admin/profile-photo', {
+                const token = getUniXsportToken();
+                await fetch(getAdminApiBase() + '/api/admin/profile-photo', {
                     method: 'DELETE',
                     headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
                 });
@@ -1046,6 +1149,19 @@ function initProfile() {
             currentAdmin.profileImage = '';
             currentAdmin.profilePhoto = '';
             localStorage.removeItem('userAvatar');
+            sessionStorage.removeItem('userAvatar');
+            localStorage.removeItem('userAvatar_admin');
+            sessionStorage.removeItem('userAvatar_admin');
+
+            try {
+                const adminObj = JSON.parse(localStorage.getItem('unixsport_user_admin') || sessionStorage.getItem('unixsport_user_admin') || '{}');
+                adminObj.profileImage = '';
+                adminObj.profilePhoto = '';
+                adminObj.avatarUrl = '';
+                localStorage.setItem('unixsport_user_admin', JSON.stringify(adminObj));
+                sessionStorage.setItem('unixsport_user_admin', JSON.stringify(adminObj));
+            } catch (errCache) {}
+
             renderAdminProfilePhoto('');
             showToast('Profile photo removed from database.', 'success');
         } catch (err) {
@@ -1385,7 +1501,19 @@ document.getElementById('editProfileForm')?.addEventListener('submit', async e =
         document.getElementById('profileEmail').textContent = currentAdmin.email;
         document.getElementById('adminName').textContent = currentAdmin.name;
         localStorage.setItem('userName', newName);
+        localStorage.setItem('userRealName', newName);
         localStorage.setItem('userEmail', newEmail);
+        sessionStorage.setItem('userName', newName);
+        sessionStorage.setItem('userRealName', newName);
+        sessionStorage.setItem('userEmail', newEmail);
+
+        try {
+            const adminObj = JSON.parse(localStorage.getItem('unixsport_user_admin') || sessionStorage.getItem('unixsport_user_admin') || '{}');
+            adminObj.name = newName;
+            adminObj.email = newEmail;
+            localStorage.setItem('unixsport_user_admin', JSON.stringify(adminObj));
+            sessionStorage.setItem('unixsport_user_admin', JSON.stringify(adminObj));
+        } catch (errCache) {}
         document.getElementById('editProfileModal').classList.remove('show');
         showToast('Profile updated successfully in database!', 'success');
     } catch (err) {
