@@ -125,6 +125,17 @@ router.post('/register', async (req, res) => {
     db.users.push(newUser);
     saveDatabase();
 
+    const mongo = typeof getMongoDb === 'function' ? getMongoDb() : null;
+    if (mongo) {
+      try {
+        const cleanUser = { ...newUser };
+        delete cleanUser._id;
+        await mongo.collection('users').insertOne(cleanUser);
+      } catch (e) {
+        console.warn('Mongo student insert note:', e.message);
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Student registered successfully. You can now log in.',

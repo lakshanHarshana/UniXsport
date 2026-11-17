@@ -55,9 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
             shakeCard();
             return;
         }
-            shakeCard();
-            return;
-        }
 
         if (!faculty) {
             showToast('Please select your faculty.', 'error');
